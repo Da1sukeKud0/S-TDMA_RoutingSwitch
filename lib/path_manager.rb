@@ -1,12 +1,12 @@
-require 'graph'
-require 'path'
-require 'trema'
+require "graph"
+require "path"
+require "trema"
 
 # L2 routing path manager
 class PathManager < Trema::Controller
   def start
     @graph = Graph.new
-    logger.info 'Path Manager started.'
+    logger.info "Path Manager started."
   end
 
   # This method smells of :reek:FeatureEnvy but ignores them

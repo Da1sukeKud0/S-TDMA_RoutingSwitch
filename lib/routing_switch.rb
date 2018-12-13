@@ -1,10 +1,11 @@
-$LOAD_PATH.unshift File.join(__dir__, '../vendor/topology/lib')
+$LOAD_PATH.unshift File.join(__dir__, "../vendor/topology/lib")
 
-require 'forwardable'
-require 'optparse'
-require 'path_manager'
-require 'sliceable_switch'
-require 'topology_controller'
+require "forwardable"
+require "optparse"
+require "path_manager"
+require "sliceable_switch"
+require "topology_controller"
+require "rtc_manager"
 
 # L2 routing switch
 class RoutingSwitch < Trema::Controller
@@ -16,7 +17,7 @@ class RoutingSwitch < Trema::Controller
 
     def initialize(args)
       @opts = OptionParser.new
-      @opts.on('-s', '--slicing') { @slicing = true }
+      @opts.on("-s", "--slicing") { @slicing = true }
       @opts.parse [__FILE__] + args
     end
   end
@@ -26,7 +27,7 @@ class RoutingSwitch < Trema::Controller
   def_delegators :@topology, :flood_lldp_frames
 
   def slice
-    fail 'Slicing is disabled.' unless @options.slicing
+    fail "Slicing is disabled." unless @options.slicing
     Slice
   end
 
@@ -34,9 +35,10 @@ class RoutingSwitch < Trema::Controller
 
   def start(args)
     @options = Options.new(args)
-    @path_manager = start_path_manager
+    # @path_manager = start_path_manager
+    @path_manager = RTCManager.new.tap(&:start)
     @topology = start_topology
-    logger.info 'Routing Switch started.'
+    logger.info "Routing Switch started."
   end
 
   def_delegators :@topology, :switch_ready

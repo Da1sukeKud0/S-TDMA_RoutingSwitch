@@ -1,4 +1,4 @@
-require 'dijkstra'
+require "dijkstra"
 
 # Network topology graph
 class Graph
@@ -17,6 +17,8 @@ class Graph
   end
 
   def add_link(node_a, node_b)
+    puts "node_a is #{node_a}"
+    puts "node_b is #{node_b}"
     @graph[node_a] += [node_b]
     @graph[node_b] += [node_a]
   end

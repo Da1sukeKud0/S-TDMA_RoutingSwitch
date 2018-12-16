@@ -25,8 +25,8 @@ S-TDMA_RoutingSwitch
 実行環境としてrvmによりRuby2.0.0をインストールすることを推奨します。
 またopenvswitchはnative sourceよりインストールすることを推奨します。
 ```
-$ git clone https://github.com/Da1sukeKud0/topology.git
-$ cd topology
+$ git clone https://github.com/Da1sukeKud0/S-TDMA_RoutingSwitch.git
+$ cd S-TDMA_RoutingSwitch
 $ bundle install --binstubs
 ```
 

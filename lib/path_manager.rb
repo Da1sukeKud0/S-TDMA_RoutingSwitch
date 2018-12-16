@@ -42,12 +42,22 @@ class PathManager < Trema::Controller
     @graph.add_link mac_address, port
   end
 
+  ## 最短経路探索のみを実行 public
+  def shortest_path?(src_mac, dst_mac)
+    shortest_path = @graph.dijkstra(src_mac, dst_mac)
+    return false unless shortest_path
+    puts shortest_path
+    return shortest_path
+    # Path.create shortest_path, packet_in
+  end
+
   private
 
   def maybe_create_shortest_path(packet_in)
     shortest_path = @graph.dijkstra(packet_in.source_mac,
                                     packet_in.destination_mac)
     return unless shortest_path
+    puts shortest_path
     Path.create shortest_path, packet_in
   end
 end

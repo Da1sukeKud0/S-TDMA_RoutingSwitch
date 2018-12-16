@@ -1,95 +1,75 @@
-Routing Switch
-==============
-[![Build Status](http://img.shields.io/travis/trema/routing_switch/develop.svg?style=flat)][travis]
-[![Code Climate](http://img.shields.io/codeclimate/github/trema/routing_switch.svg?style=flat)][codeclimate]
-[![Coverage Status](http://img.shields.io/codeclimate/coverage/github/trema/routing_switch.svg?style=flat)][codeclimate]
-[![Dependency Status](http://img.shields.io/gemnasium/trema/routing_switch.svg?style=flat)][gemnasium]
+S-TDMA_RoutingSwitch
+========
+<!--
+[![Build Status](http://img.shields.io/travis/Da1sukeKud0/topology/develop.svg?style=flat)][travis]
+[![Code Climate](http://img.shields.io/codeclimate/github/Da1sukeKud0/topology.svg?style=flat)][codeclimate]
+[![Coverage Status](http://img.shields.io/codeclimate/coverage/github/Da1sukeKud0/topology.svg?style=flat)][codeclimate]
+[![Dependency Status](http://img.shields.io/gemnasium/Da1sukeKud0/topology.svg?style=flat)][gemnasium]
 
-This is a layer 2 switch application with virtual slicing
-function. The slicing function allows us to create multiple layer 2
-domains. This is similar to MAC-based VLAN but there is no limitation
-on VLAN ID space.
+[travis]: https://travis-ci.org/Da1sukeKud0/topology
+[codeclimate]: https://codeclimate.com/github/Da1sukeKud0/topology
+[gemnasium]: https://gemnasium.com/trema/topology
+-->
 
-[travis]: http://travis-ci.org/trema/routing_switch
-[codeclimate]: https://codeclimate.com/github/trema/routing_switch
-[gemnasium]: https://gemnasium.com/trema/routing_switch
-
-
-Prerequisites
+実行環境
 -------------
-
-* Ruby 2.0.0 or higher ([RVM][rvm]).
+* Ruby 2.0.0
 * [Open vSwitch][openvswitch] (`apt-get install openvswitch-switch`).
 
 [rvm]: https://rvm.io/
 [openvswitch]: https://openvswitch.org/
 
 
-Install
+インストール
 -------
-
-```bash
-git clone https://github.com/trema/routing_switch.git
-cd routing_switch
-bundle install --binstubs
+実行環境としてrvmによりRuby2.0.0をインストールすることを推奨します。
+またopenvswitchはnative sourceよりインストールすることを推奨します。
+```
+$ git clone https://github.com/Da1sukeKud0/topology.git
+$ cd topology
+$ bundle install --binstubs
 ```
 
-
-Play
+トポロジ生成スクリプトの使用方法
 ----
+BAモデルに基づくランダムトポロジの生成(標準入力よりスイッチ数と複雑さを指定)
+```
+$ util/createRandomTopology.py
+```
+testディレクトリに.conf、test/topo_image/にトポロジのグラフ画像が生成される。
 
-To run without virtual slicing, run `lib/routing_switch.rb` as
-follows:
+コアトポロジ、リニアトポロジの生成(引数にスイッチ数を指定)
+```
+$ util/createLinearTopology.py 10
+$ util/createCoreTopology.py 10
+```
+testディレクトリに.confが生成される。
 
-```bash
-./bin/trema run lib/routing_switch.rb -c trema.conf
+Tremaのsend_packetsコマンドを一括実行するスクリプト(引数にホスト数と追加実行したいpacket_Inの数を指定)
+```
+$ util/send_packets.py 6 3
 ```
 
-To run with virtual slicing support, run `lib/routing_switch.rb` with
-`-- --slicing` options as follows:
-
-```bash
-./bin/trema run lib/routing_switch.rb -c trema.conf -- --slicing
+OpenFlowコントローラの使用方法
+----
+コントローラの起動（`-c`オプションにより任意の初期トポロジを設定）
+```
+$ ./bin/trema run ./lib/routing_switch.rb -c test/linear.conf
 ```
 
-In another terminal, you can create virtual slices with the following
-command:
-
-```bash
-./bin/slice add foo
+スイッチの起動/停止
+```
+$ ./bin/trema stop 0x1
+$ ./bin/trema start 0x1
 ```
 
-Then add hosts to the slice with the following command:
-
-```bash
-./bin/slice add_host --mac 11:11:11:11:11:11 --port 0x1:1 --slice foo
+スイッチポートの起動/停止
+```
+$ ./bin/trema port_down --switch 0x1 --port 1
+$ ./bin/trema port_up --switch 0x1 --port 1
 ```
 
-
-REST API
---------
-
-To start the REST API server:
-
-```bash
-./bin/rackup
+ホストをスイッチに追加（実際にはスイッチもポートも存在するが以下によるPacket_Inでリンクが検出される）
 ```
-
-### Supported APIs
-
-Read [this](https://relishapp.com/trema/routing-switch/docs/rest-api) for details.
-
-Description                 | Method | URI
-----------------------------|--------|--------------------------------------------------------------
-Create a slice              | POST   | `/slices`
-Delete a slice              | DELETE | `/slices`
-List slices                 | GET    | `/slices`
-Shows a slice               | GET    | `/slices/:slice_id`
-Add a port to a slice       | POST   | `/slices/:slice_id/ports`
-Delete a port from a slice  | DELETE | `/slices/:slice_id/ports`
-List ports                  | GET    | `/slices/:slice_id/ports`
-Shows a port                | GET    | `/slices/:slice_id/ports/:port_id`
-Adds a host to a slice      | POST   | `/slices/:slice_id/ports/:port_id/mac_addresses`
-Deletes a host from a slice | DELETE | `/slices/:slice_id/ports/:port_id/mac_addresses`
-List MAC addresses          | GET    | `/slices/:slice_id/ports/:port_id/mac_addresses`
-Shows a MAC address         | GET    | `/slices/:slice_id/ports/:port_id/mac_addresses/:mac_address`
+$ ./bin/trema send_packets -n 1 -s h1 -d h2
+```

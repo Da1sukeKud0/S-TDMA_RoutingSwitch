@@ -9,37 +9,43 @@ class PathManager < Trema::Controller
     logger.info "Path Manager started."
   end
 
+  attr_accessor :graph
+
   # This method smells of :reek:FeatureEnvy but ignores them
-  def packet_in(_dpid, message)
-    path = maybe_create_shortest_path(message)
-    ports = path ? [path.out_port] : @graph.external_ports
-    ports.each do |each|
-      send_packet_out(each.dpid,
-                      raw_data: message.raw_data,
-                      actions: SendOutPort.new(each.number))
+  def packet_in(_dpid, message, mode = "shared")
+    if (mode == "shared")
+      path = maybe_create_shortest_path(message)
+      ports = path ? [path.out_port] : @graph.external_ports
+      ports.each do |each|
+        send_packet_out(each.dpid,
+                        raw_data: message.raw_data,
+                        actions: SendOutPort.new(each.number))
+      end
+    else
+      puts "exclusive"
     end
   end
 
   def add_port(port, _topology)
-    @graph.add_link port.dpid, port
+    @graph.add_link(port.dpid, port)
   end
 
   def delete_port(port, _topology)
-    @graph.delete_node port
+    @graph.delete_node(port)
   end
 
   # TODO: update all paths
   def add_link(port_a, port_b, _topology)
-    @graph.add_link port_a, port_b
+    @graph.add_link(port_a, port_b)
   end
 
   def delete_link(port_a, port_b, _topology)
-    @graph.delete_link port_a, port_b
+    @graph.delete_link(port_a, port_b)
     Path.find { |each| each.link?(port_a, port_b) }.each(&:destroy)
   end
 
   def add_host(mac_address, port, _topology)
-    @graph.add_link mac_address, port
+    @graph.add_link(mac_address, port)
   end
 
   ## 最短経路探索のみを実行 public
@@ -47,8 +53,12 @@ class PathManager < Trema::Controller
     shortest_path = @graph.dijkstra(src_mac, dst_mac)
     return false unless shortest_path
     puts shortest_path
+    # Path.create(shortest_path, packet_in) ## これがないと切断時の検出もできない・・・？
     return shortest_path
-    # Path.create shortest_path, packet_in
+  end
+
+  def delete_used_link(path)
+
   end
 
   private
@@ -57,7 +67,10 @@ class PathManager < Trema::Controller
     shortest_path = @graph.dijkstra(packet_in.source_mac,
                                     packet_in.destination_mac)
     return unless shortest_path
-    puts shortest_path
-    Path.create shortest_path, packet_in
+    puts "path class is #{shortest_path.class}"
+    for p in shortest_path
+      puts "p is #{p} (class: #{p.class})"
+    end
+    Path.create(shortest_path, packet_in)
   end
 end

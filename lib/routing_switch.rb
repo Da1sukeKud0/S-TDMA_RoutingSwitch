@@ -3,7 +3,7 @@ $LOAD_PATH.unshift File.join(__dir__, "../vendor/topology/lib")
 require "forwardable"
 require "optparse"
 require "path_manager"
-require "sliceable_switch"
+# require "sliceable_switch"
 require "topology_controller"
 require "rtc_manager"
 
@@ -12,31 +12,31 @@ class RoutingSwitch < Trema::Controller
   extend Forwardable
 
   # Command-line options of RoutingSwitch
-  class Options
-    attr_reader :slicing
+  # class Options
+  #   attr_reader :slicing
 
-    def initialize(args)
-      @opts = OptionParser.new
-      @opts.on("-s", "--slicing") { @slicing = true }
-      @opts.parse [__FILE__] + args
-    end
-  end
+  #   def initialize(args)
+  #     @opts = OptionParser.new
+  #     @opts.on("-s", "--slicing") { @slicing = true }
+  #     @opts.parse [__FILE__] + args
+  #   end
+  # end
 
   timer_event :flood_lldp_frames, interval: 1.sec
 
   def_delegators :@topology, :flood_lldp_frames
 
-  def slice
-    fail "Slicing is disabled." unless @options.slicing
-    Slice
-  end
+  # def slice
+  #   fail "Slicing is disabled." unless @options.slicing
+  #   Slice
+  # end
 
   # @!group Trema event handlers
 
   def start(args)
-    @options = Options.new(args)
+    # @options = Options.new(args)
     # @path_manager = start_path_manager
-    @path_manager = RTCManager.new.tap(&:start)
+    @rtc_manager = RTCManager.new.tap(&:start)
     @topology = start_topology
     logger.info "Routing Switch started."
   end
@@ -48,21 +48,21 @@ class RoutingSwitch < Trema::Controller
 
   def packet_in(dpid, message)
     @topology.packet_in(dpid, message)
-    @path_manager.packet_in(dpid, message) unless message.lldp?
+    @rtc_manager.packet_in(dpid, message) unless message.lldp?
   end
 
   private
 
-  def start_path_manager
-    fail unless @options
-    (@options.slicing ? SliceableSwitch : PathManager).new.tap(&:start)
-  end
+  # def start_path_manager
+  #   fail unless @options
+  #   (@options.slicing ? SliceableSwitch : PathManager).new.tap(&:start)
+  # end
 
   def start_topology
-    fail unless @path_manager
+    fail unless @rtc_manager
     TopologyController.new.tap do |topology|
       topology.start []
-      topology.add_observer @path_manager
+      topology.add_observer @rtc_manager
     end
   end
 end

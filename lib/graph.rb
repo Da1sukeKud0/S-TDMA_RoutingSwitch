@@ -6,6 +6,8 @@ class Graph
     @graph = Hash.new([].freeze)
   end
 
+  attr_reader :graph
+
   def fetch(node)
     @graph.fetch(node)
   end

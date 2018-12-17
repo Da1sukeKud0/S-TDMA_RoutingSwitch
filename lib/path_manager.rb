@@ -58,7 +58,6 @@ class PathManager < Trema::Controller
   end
 
   def delete_used_link(path)
-
   end
 
   private

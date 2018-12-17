@@ -64,12 +64,8 @@ class PathManager < Trema::Controller
 
   def maybe_create_shortest_path(packet_in)
     shortest_path = @graph.dijkstra(packet_in.source_mac,
-                                    packet_in.destination_mac)
-    return unless shortest_path
-    puts "path class is #{shortest_path.class}"
-    for p in shortest_path
-      puts "p is #{p} (class: #{p.class})"
-    end
+                                    packet_in.destination_mac) ## [Pio::Mac, (Topology::Port)*2n, Pio::Mac]
+    return false unless shortest_path ## falseを追記
     Path.create(shortest_path, packet_in)
   end
 end

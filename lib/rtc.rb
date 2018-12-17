@@ -3,16 +3,16 @@
 ## スケジューリング可能であれば通信経路とタイムスロットIDを獲得
 ## RoutingSwitch版
 class RTC
-  def initialize(src, dst, period)
-    @src = src ## mac_addressの予定
-    @dst = dst ## mac_addressの予定
-    @period = period ## 通信周期（タイムスロット単位）
-    rtc_id = ((0..9).to_a + ("a".."z").to_a + ("A".."Z").to_a).sample(5).join
-    puts "rtc_id: #{rtc_id}"
+  def initialize(source_mac, destination_mac, period)
+    @source_mac = source_mac ## Pio::Mac
+    @destination_mac = destination_mac ## Pio::Mac
+    @period = period ## 通信周期(タイムスロット単位)
+    @rtc_id = ((0..9).to_a + ("a".."z").to_a + ("A".."Z").to_a).sample(5).join
+    puts "rtc_id: #{@rtc_id}"
   end
 
-  attr_reader :src
-  attr_reader :dst
+  attr_reader :source_mac
+  attr_reader :destination_mac
   attr_reader :period
   attr_reader :initial_phase
   attr_reader :route

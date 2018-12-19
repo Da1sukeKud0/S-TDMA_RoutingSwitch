@@ -6,7 +6,7 @@ import subprocess
 import copy
 
 cmdList = []
-cmd01 = "rvmsudo ./bin/trema send_packets -n 1 -s".split(" ")
+cmd01 = "./bin/trema send_packets -n 1 -s".split(" ")
 cmd02 = "-d h1".split(" ")
 
 
@@ -37,7 +37,7 @@ def addHostLink(num):
 
 
 def additional_packet_in(num):
-    cmd = "rvmsudo ./bin/trema send_packets -n 1 -s h1 -d h2".split(" ")
+    cmd = "./bin/trema send_packets -n 1 -s h1 -d h2".split(" ")
     for n in range(1, num+1):
         cmdList.append(cmd)
         # subprocess.call(cmd)

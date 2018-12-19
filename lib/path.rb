@@ -1,12 +1,12 @@
-require 'active_support/core_ext/class/attribute_accessors'
-require 'trema'
+require "active_support/core_ext/class/attribute_accessors"
+require "trema"
 
 # List of shortest-path flow entries.
 class Path < Trema::Controller
   cattr_accessor(:all, instance_reader: false) { [] }
 
-  def self.create(shortest_path, packet_in)
-    new.save(shortest_path, packet_in).tap { |new_path| all << new_path }
+  def self.create(shortest_path, packet_in, mode = "shared")
+    new.save(shortest_path, packet_in, mode).tap { |new_path| all << new_path }
   end
 
   def self.destroy(path)
@@ -20,16 +20,21 @@ class Path < Trema::Controller
   attr_accessor :slice
   attr_reader :packet_in
 
-  def save(full_path, packet_in)
+  def save(full_path, packet_in, mode)
+    @mode = mode
     @full_path = full_path
     @packet_in = packet_in
-    logger.info 'Creating path: ' + @full_path.map(&:to_s).join(' -> ')
-    flow_mod_add_to_each_switch
+    if (@mode == "shared")
+      logger.info "Creating path: " + @full_path.map(&:to_s).join(" -> ")
+      flow_mod_add_to_each_switch
+    else ## flowmodしない
+      logger.info "Creating path(RTC): " + @full_path.map(&:to_s).join(" -> ")
+    end
     self
   end
 
   def destroy
-    logger.info 'Deleting path: ' + @full_path.map(&:to_s).join(' -> ')
+    logger.info "Deleting path: " + @full_path.map(&:to_s).join(" -> ")
     Path.destroy self
     flow_mod_delete_to_each_switch
   end
@@ -59,6 +64,7 @@ class Path < Trema::Controller
   def flow_mod_add_to_each_switch
     path.each_slice(2) do |in_port, out_port|
       send_flow_mod_add(out_port.dpid,
+                        # table_id: 0, ## 将来的にはタイムスロット番号(timeslot_table[index])とtable_id: indexが対応する予定
                         # hard_timeout: 60,
                         match: exact_match(in_port.number),
                         actions: SendOutPort.new(out_port.number))

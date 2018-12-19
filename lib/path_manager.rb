@@ -53,7 +53,6 @@ class PathManager < Trema::Controller
   def shortest_path?(src_mac, dst_mac)
     shortest_path = @graph.dijkstra(src_mac, dst_mac)
     return false unless shortest_path
-    puts shortest_path
     # Path.create(shortest_path, packet_in) ## これがないと切断時の検出もできない・・・？
     return shortest_path
   end

@@ -3,6 +3,7 @@ require "path"
 require "trema"
 require "path_manager"
 require "rtc"
+require "cputs"
 
 ## RTCManager
 ## 実時間通信要求に対し経路スケジューリングおよび時刻スケジューリングを行う
@@ -13,10 +14,11 @@ class RTCManager < Trema::Controller
     @timeslot_table = Hash.new { |hash, key| hash[key] = [] } ## {timeslot=>[rtc,rtc,,,], ,,}
     @period_list = [] ## 周期の種類を格納(同じ数値の周期も重複して格納)
     logger.info "RTC Manager started."
+    @counter = 0 ## for test
   end
 
-  def periodSchedule(packet_in, source_mac, destination_mac, period)
-    @packet_in = packet_in
+  def periodSchedule(message, source_mac, destination_mac, period)
+    @message = message
     rtc = RTC.new(source_mac, destination_mac, period)
     initial_phase = 0 ##初期位相0に設定
     ## 0~periodの間でスケジューリング可能な初期位相を探す
@@ -32,17 +34,19 @@ class RTCManager < Trema::Controller
         #   end
         # end
         # test(@timeslot_table, topo)
-        puts Path.all
+        for p in Path.all
+          gputs "mode: #{p.mode}, path: #{p.full_path}"
+        end
         return true
       else ##スケジューリング不可
         initial_phase += 1
       end
     end
-    puts "####################"
-    puts "####################"
-    puts "####### false ######"
-    puts "####################"
-    puts "####################"
+    rputs "####################"
+    rputs "####################"
+    rputs "####### false ######"
+    rputs "####################"
+    rputs "####################"
     return false
   end
 
@@ -60,7 +64,7 @@ class RTCManager < Trema::Controller
           end
         end
         add_period(rtc.period)
-        Path.create(route, @packet_in, "Exclusive")
+        Path.create(route, @message, "Exclusive")
       else ## 経路なし
         return false
       end
@@ -99,7 +103,7 @@ class RTCManager < Trema::Controller
       add_period(rtc.period) ## period_listの更新
       ## @timeslot_tableに対しroute_listに従ってrtcを追加
       route_list.each do |key, array|
-        Path.create(array, @packet_in, "Exclusive") ##同じ経路でもpathが生成されてしまう・・・？
+        Path.create(array, @message, "Exclusive") ##同じ経路でもpathが生成されてしまう・・・？
         tmp_rtc = rtc.clone
         tmp_rtc.setSchedule(initial_phase, array)
         @timeslot_table[key].push(tmp_rtc)
@@ -115,10 +119,19 @@ class RTCManager < Trema::Controller
     if (mode == "shared")
       puts "packet_in is called (shared)"
       @path_manager.packet_in(_dpid, message, mode)
-      puts Path.all
+      for p in Path.all
+        puts ""
+        gputs "mode: #{p.mode}, path: #{p.full_path}"
+        puts ""
+      end
     else
       puts "packet_in is called (exclusive)"
       # @path_manager.packet_in(_dpid, message, mode) ## 現時点では何もしない
+    end
+    @counter += 1
+    if (@counter == 6)
+      ##RTCManager test
+      yputs "test started."
     end
   end
 

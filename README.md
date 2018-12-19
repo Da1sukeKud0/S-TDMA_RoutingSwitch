@@ -73,3 +73,7 @@ $ ./bin/trema port_up --switch 0x1 --port 1
 ```
 $ ./bin/trema send_packets -n 1 -s h1 -d h2
 ```
+
+RTCManager
+----
+[scheduling_flowchart.pdf](https://github.com/Da1sukeKud0/S-TDMA_RoutingSwitch/files/2693808/scheduling_flowchart.pdf)

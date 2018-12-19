@@ -15,7 +15,8 @@ class RTCManager < Trema::Controller
     logger.info "RTC Manager started."
   end
 
-  def periodSchedule(source_mac, destination_mac, period)
+  def periodSchedule(packet_in, source_mac, destination_mac, period)
+    @packet_in = packet_in
     rtc = RTC.new(source_mac, destination_mac, period)
     initial_phase = 0 ##初期位相0に設定
     ## 0~periodの間でスケジューリング可能な初期位相を探す
@@ -23,7 +24,7 @@ class RTCManager < Trema::Controller
       if (routeSchedule(rtc, initial_phase)) ##スケジューリング可
         puts "スケジューリング可能です"
         puts ""
-        # puts @timeslot_table
+        puts @timeslot_table
         # @timeslot_table.each do |timeslot, exist_rtcs|
         #   puts "timeslot: #{timeslot}"
         #   exist_rtcs.each do |i|
@@ -31,6 +32,7 @@ class RTCManager < Trema::Controller
         #   end
         # end
         # test(@timeslot_table, topo)
+        puts Path.all
         return true
       else ##スケジューリング不可
         initial_phase += 1
@@ -58,6 +60,7 @@ class RTCManager < Trema::Controller
           end
         end
         add_period(rtc.period)
+        Path.create(route, @packet_in, "Exclusive")
       else ## 経路なし
         return false
       end
@@ -88,16 +91,17 @@ class RTCManager < Trema::Controller
           return false if tmp_graph.graph[destination_mac].empty? ## ホスト未登録だとfalse
           route = Dijkstra.new(tmp_graph).run(rtc.source_mac, rtc.destination_mac)
           return false unless (route) ## 到達可能な経路なし
-          route_list[timeslot] = route ## ルーティング可能なら一時変数に格納
+          route_list[timeslot] = route
         end
       end
       ## (ここでfalseでない時点で)使用する全てのタイムスロットでルーティングが可能
       @timeslot_table = tmp_timeslot_table.clone ## tmp_timeslot_tableを反映
       add_period(rtc.period) ## period_listの更新
       ## @timeslot_tableに対しroute_listに従ってrtcを追加
-      route_list.each do |key, val|
+      route_list.each do |key, array|
+        Path.create(array, @packet_in, "Exclusive") ##同じ経路でもpathが生成されてしまう・・・？
         tmp_rtc = rtc.clone
-        tmp_rtc.setSchedule(initial_phase, val)
+        tmp_rtc.setSchedule(initial_phase, array)
         @timeslot_table[key].push(tmp_rtc)
       end
       @timeslot_table = @timeslot_table.sort.to_h
@@ -111,9 +115,10 @@ class RTCManager < Trema::Controller
     if (mode == "shared")
       puts "packet_in is called (shared)"
       @path_manager.packet_in(_dpid, message, mode)
+      puts Path.all
     else
       puts "packet_in is called (exclusive)"
-      @path_manager.packet_in(_dpid, message, mode)
+      # @path_manager.packet_in(_dpid, message, mode) ## 現時点では何もしない
     end
   end
 

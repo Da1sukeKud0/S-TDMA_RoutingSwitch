@@ -42,6 +42,7 @@ class PathManager < Trema::Controller
   def delete_link(port_a, port_b, _topology)
     @graph.delete_link(port_a, port_b)
     Path.find { |each| each.link?(port_a, port_b) }.each(&:destroy)
+    ## 上記処理でExclusive Modeのpathオブジェクトも消えてしまう。どうする？
   end
 
   def add_host(mac_address, port, _topology)
@@ -63,8 +64,7 @@ class PathManager < Trema::Controller
   private
 
   def maybe_create_shortest_path(packet_in)
-    shortest_path = @graph.dijkstra(packet_in.source_mac,
-                                    packet_in.destination_mac) ## [Pio::Mac, (Topology::Port)*2n, Pio::Mac]
+    shortest_path = @graph.dijkstra(packet_in.source_mac,packet_in.destination_mac) ## [Pio::Mac, (Topology::Port)*2n, Pio::Mac]
     return false unless shortest_path ## falseを追記
     Path.create(shortest_path, packet_in)
   end

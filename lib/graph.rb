@@ -39,7 +39,7 @@ class Graph
   def dijkstra(source_mac, destination_mac)
     return false if @graph[destination_mac].empty?
     route = Dijkstra.new(@graph).run(source_mac, destination_mac)
-    # route.reject { |each| each.is_a? Integer } ## return Array
-    return route
+    return false until route
+    route.reject { |each| each.is_a? Integer } ## return Array
   end
 end

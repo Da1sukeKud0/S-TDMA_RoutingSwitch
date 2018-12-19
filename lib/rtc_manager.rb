@@ -15,6 +15,7 @@ class RTCManager < Trema::Controller
     @period_list = [] ## 周期の種類を格納(同じ数値の周期も重複して格納)
     logger.info "RTC Manager started."
     @counter = 0 ## for test
+    @tmp_msg = Hash.new ## for test
   end
 
   def periodSchedule(message, source_mac, destination_mac, period)
@@ -24,18 +25,15 @@ class RTCManager < Trema::Controller
     ## 0~periodの間でスケジューリング可能な初期位相を探す
     while (initial_phase < period)
       if (routeSchedule(rtc, initial_phase)) ##スケジューリング可
-        puts "スケジューリング可能です"
+        yputs "スケジューリング可能です"
         puts ""
-        puts @timeslot_table
-        # @timeslot_table.each do |timeslot, exist_rtcs|
-        #   puts "timeslot: #{timeslot}"
-        #   exist_rtcs.each do |i|
-        #     puts i.route
-        #   end
-        # end
-        # test(@timeslot_table, topo)
-        for p in Path.all
-          gputs "mode: #{p.mode}, path: #{p.full_path}"
+        # puts @timeslot_table
+        @timeslot_table.each do |timeslot, exist_rtcs|
+          puts "timeslot: #{timeslot}"
+          exist_rtcs.each do |e|
+            yputs "rtc_id: #{e.rtc_id}"
+            yputs "route: #{e.route}"
+          end
         end
         return true
       else ##スケジューリング不可
@@ -76,26 +74,29 @@ class RTCManager < Trema::Controller
           tmp_timeslot_table[timeslot + @lcm * i] = @timeslot_table[timeslot].clone
         end
       end
+      tmp_timeslot_table = sort_h(tmp_timeslot_table)
       route_list = Hash.new() ## 一時的な経路情報格納 {timeslot=>route,,,}
       ## timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除してから探索
       tmp_timeslot_table.each do |timeslot, exist_rtcs|
         puts "tsl=#{timeslot}"
         if ((timeslot - initial_phase) % rtc.period == 0)
-          tmp_graph = @path_manager.graph ## Graph Class
+          tmp_graph = @path_manager.graph.graph.clone ## Graph::graph(Hash Class)
           if (exist_rtcs.size != 0) ## 同一タイムスロット内にrtcが既存
             puts "既存のRTCあるよ"
             for er in exist_rtcs
               puts "each_rtc=#{er}"
               er.route[2..-3].each_slice(2) do |s, d| ## 使用するスイッチ間リンクを削除し保持
-                tmp_graph.delete(s, d)
+                # puts "delete link: #{s} to #{d}"
+                tmp_graph[s] -= [d]
+                tmp_graph[d] -= [s]
               end
             end
           end
           ##
-          return false if tmp_graph.graph[destination_mac].empty? ## ホスト未登録だとfalse
+          return false if tmp_graph[rtc.destination_mac].empty? ## ホスト未登録だとfalse
           route = Dijkstra.new(tmp_graph).run(rtc.source_mac, rtc.destination_mac)
-          return false unless (route) ## 到達可能な経路なし
-          route_list[timeslot] = route
+          return false unless route ## 到達可能な経路なし
+          route_list[timeslot] = route.reject { |each| each.is_a? Integer }
         end
       end
       ## (ここでfalseでない時点で)使用する全てのタイムスロットでルーティングが可能
@@ -108,7 +109,7 @@ class RTCManager < Trema::Controller
         tmp_rtc.setSchedule(initial_phase, array)
         @timeslot_table[key].push(tmp_rtc)
       end
-      @timeslot_table = @timeslot_table.sort.to_h
+      @timeslot_table = sort_h(@timeslot_table)
     end
     return true
   end
@@ -128,10 +129,15 @@ class RTCManager < Trema::Controller
       puts "packet_in is called (exclusive)"
       # @path_manager.packet_in(_dpid, message, mode) ## 現時点では何もしない
     end
+
     @counter += 1
+    @tmp_msg[@counter] = message
+    ## RTCManagerのテストは以下に記述
     if (@counter == 6)
-      ##RTCManager test
-      yputs "test started."
+      yputs "Test started."
+      puts ""
+      periodSchedule(@tmp_msg[1], @tmp_msg[1].source_mac, @tmp_msg[1].destination_mac, 2)
+      periodSchedule(@tmp_msg[4], @tmp_msg[4].source_mac, @tmp_msg[4].destination_mac, 5)
     end
   end
 
@@ -227,4 +233,14 @@ class RTCManager < Trema::Controller
       return @lcm
     end
   end
+end
+
+## sort(Hash)
+def sort_h(hash)
+  array = hash.sort
+  hash = {}
+  array.each do |a|
+    hash[a[0]] = a[1]
+  end
+  return hash
 end

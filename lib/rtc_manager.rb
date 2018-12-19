@@ -4,21 +4,19 @@ require "trema"
 require "path_manager"
 require "rtc"
 
-##
+## RTCManager
 ## 実時間通信要求に対し経路スケジューリングおよび時刻スケジューリングを行う
 ## RoutingSwitch版
 class RTCManager < Trema::Controller
   def start
     @path_manager = PathManager.new.tap(&:start)
-    # @graph_table = Hash.new ## timeslot毎に@graphを保持
     @timeslot_table = Hash.new { |hash, key| hash[key] = [] } ## {timeslot=>[rtc,rtc,,,], ,,}
-    # @timeslot_table[0] = @path_manager
     @period_list = [] ## 周期の種類を格納(同じ数値の周期も重複して格納)
     logger.info "RTC Manager started."
   end
 
-  def periodSchedule(src, dst, period)
-    rtc = RTC.new(src, dst, period)
+  def periodSchedule(source_mac, destination_mac, period)
+    rtc = RTC.new(source_mac, destination_mac, period)
     initial_phase = 0 ##初期位相0に設定
     ## 0~periodの間でスケジューリング可能な初期位相を探す
     while (initial_phase < period)
@@ -48,14 +46,10 @@ class RTCManager < Trema::Controller
 
   def routeSchedule(rtc, initial_phase)
     if (@timeslot_table.all? { |key, each| each.size == 0 }) ##既存のrtcがない場合
-      route = @path_manager.shortest_path?(rtc.src, rtc.dst)
+      route = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
       if (route) ## 経路あり
         ## 使用する各スロットにrtcを格納(経路は全て同じ)
         rtc.setSchedule(initial_phase, route)
-        # tmp_graph = @path_manager.graph
-        # route[2..-3].each_slice(2) do |src, dst| ## 使用するスイッチ間リンクを削除し保持
-        #   tmp_graph.delete(src, dst)
-        # end
         for i in Range.new(0, rtc.period - 1)
           if ((i + initial_phase) % rtc.period == 0)
             @timeslot_table[i].push(rtc)
@@ -76,42 +70,35 @@ class RTCManager < Trema::Controller
         end
       end
       route_list = Hash.new() ## 一時的な経路情報格納 {timeslot=>route,,,}
+      ## timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除してから探索
       tmp_timeslot_table.each do |timeslot, exist_rtcs|
-        ## timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除してから探索
         puts "tsl=#{timeslot}"
         if ((timeslot - initial_phase) % rtc.period == 0)
-          tmp_graph = @path_manager.graph
+          tmp_graph = @path_manager.graph ## Graph Class
           if (exist_rtcs.size != 0) ## 同一タイムスロット内にrtcが既存
             puts "既存のRTCあるよ"
-            for each_rtc in exist_rtcs
-              puts "each_rtc=#{each_rtc}"
-              route[2..-3].each_slice(2) do |src, dst| ## 使用するスイッチ間リンクを削除し保持
-                tmp_graph.delete(src, dst)
+            for er in exist_rtcs
+              puts "each_rtc=#{er}"
+              er.route[2..-3].each_slice(2) do |s, d| ## 使用するスイッチ間リンクを削除し保持
+                tmp_graph.delete(s, d)
               end
             end
           end
-          ## @path_managerを直接変更はありか・・・？(sharedの既存経路の切断が発生しそう)
-          # @path_manager.graph = tmp_graph
-          # route = @path_manager.shortest_path?(rtc.src, rtc.dst)
+          ##
           return false if tmp_graph.graph[destination_mac].empty? ## ホスト未登録だとfalse
-          route = Dijkstra.new(@graph).run(source_mac, destination_mac)
-          route.reject { |each| each.is_a? Integer }
-          if (route) ## ルーティング可能なら一時変数に格納
-            route_list[timeslot] = route
-          else ## いずれかのタイムスロットで非重複経路がない場合
-            return false
-          end
+          route = Dijkstra.new(tmp_graph).run(rtc.source_mac, rtc.destination_mac)
+          return false unless (route) ## 到達可能な経路なし
+          route_list[timeslot] = route ## ルーティング可能なら一時変数に格納
         end
       end
-      ## ここでfalseでない時点で使用する全てのタイムスロットでルーティングが可能
-      ## まずtmp_timeslot_tableを複製
-      @timeslot_table = tmp_timeslot_table.clone
-      ## period_listの更新
-      add_period(rtc.period)
+      ## (ここでfalseでない時点で)使用する全てのタイムスロットでルーティングが可能
+      @timeslot_table = tmp_timeslot_table.clone ## tmp_timeslot_tableを反映
+      add_period(rtc.period) ## period_listの更新
       ## @timeslot_tableに対しroute_listに従ってrtcを追加
       route_list.each do |key, val|
-        rtc.setSchedule(initial_phase, val)
-        @timeslot_table[key].push(rtc.clone)
+        tmp_rtc = rtc.clone
+        tmp_rtc.setSchedule(initial_phase, val)
+        @timeslot_table[key].push(tmp_rtc)
       end
       @timeslot_table = @timeslot_table.sort.to_h
     end

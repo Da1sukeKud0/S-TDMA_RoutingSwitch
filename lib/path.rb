@@ -19,6 +19,8 @@ class Path < Trema::Controller
 
   attr_accessor :slice
   attr_reader :packet_in
+  attr_reader :full_path
+  attr_reader :mode
 
   def save(full_path, packet_in, mode)
     @mode = mode

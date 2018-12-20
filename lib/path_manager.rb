@@ -1,5 +1,5 @@
-require "graph"
-require "path"
+require_relative "graph"
+require_relative "path"
 require "trema"
 
 # L2 routing path manager
@@ -63,7 +63,7 @@ class PathManager < Trema::Controller
   private
 
   def maybe_create_shortest_path(packet_in)
-    shortest_path = @graph.dijkstra(packet_in.source_mac,packet_in.destination_mac) ## [Pio::Mac, (Topology::Port)*2n, Pio::Mac]
+    shortest_path = @graph.dijkstra(packet_in.source_mac, packet_in.destination_mac) ## [Pio::Mac, (Topology::Port)*2n, Pio::Mac]
     return false unless shortest_path ## falseを追記
     Path.create(shortest_path, packet_in)
   end

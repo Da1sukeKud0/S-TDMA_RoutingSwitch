@@ -1,4 +1,4 @@
-require "dijkstra"
+require_relative "dijkstra"
 
 # Network topology graph
 class Graph

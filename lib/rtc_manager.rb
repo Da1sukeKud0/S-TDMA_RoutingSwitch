@@ -1,19 +1,19 @@
-require "graph"
-require "path"
+require_relative "graph"
+require_relative "path"
 require "trema"
-require "path_manager"
-require "rtc"
-require "cputs"
+require_relative "path_manager"
+require_relative "rtc"
+require_relative "cputs"
 
 ## RTCManager
 ## 実時間通信要求に対し経路スケジューリングおよび時刻スケジューリングを行う
 ## RoutingSwitch版
-class RTCManager < Trema::Controller
+class RTCManager #< Trema::Controller
   def start
     @path_manager = PathManager.new.tap(&:start)
     @timeslot_table = Hash.new { |hash, key| hash[key] = [] } ## {timeslot=>[rtc,rtc,,,], ,,}
     @period_list = [] ## 周期の種類を格納(同じ数値の周期も重複して格納)
-    logger.info "RTC Manager started."
+    yputs "RTC Manager started."
     @counter = 0 ## for test
     @tmp_msg = Hash.new ## for test
   end
@@ -162,7 +162,6 @@ class RTCManager < Trema::Controller
 
   private
 
-  ## routeSchedule
   ## @period_listに新規periodを追加する関数
   def add_period(period)
     @period_list.push(period)
@@ -177,7 +176,6 @@ class RTCManager < Trema::Controller
     end
   end
 
-  ## routeSchedule
   ## @period_listに新規periodを追加した場合の
   ## @timeslot_tableの倍率を返す関数
   def add_period?(period)
@@ -194,7 +192,6 @@ class RTCManager < Trema::Controller
     return res
   end
 
-  ## routeSchedule
   ## @period_listから指定したperiodを1つだけ削除する関数
   def del_period(period)
     for i in Range.new(0, @period_list.size - 1)
@@ -233,7 +230,7 @@ class RTCManager < Trema::Controller
   end
 end
 
-## sort(Hash)
+## sort(Hash): Ruby1.9で廃止されたらしい
 def sort_h(hash)
   array = hash.sort
   hash = {}

@@ -1,6 +1,6 @@
 require "active_support/core_ext/class/attribute_accessors"
 require "trema"
-require "cputs"
+require_relative "cputs"
 
 # List of shortest-path flow entries.
 class Path < Trema::Controller

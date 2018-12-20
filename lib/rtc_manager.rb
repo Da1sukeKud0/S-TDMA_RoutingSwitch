@@ -14,8 +14,8 @@ class RTCManager #< Trema::Controller
     @timeslot_table = Hash.new { |hash, key| hash[key] = [] } ## {timeslot=>[rtc,rtc,,,], ,,}
     @period_list = [] ## 周期の種類を格納(同じ数値の周期も重複して格納)
     yputs "RTC Manager started."
-    @counter = 0 ## for test
-    @tmp_msg = Hash.new ## for test
+    # @counter = 0 ## for test
+    # @tmp_msg = Hash.new ## for test
   end
 
   def periodSchedule(message, source_mac, destination_mac, period)
@@ -84,8 +84,8 @@ class RTCManager #< Trema::Controller
             puts "既存のRTCあるよ"
             for er in exist_rtcs
               puts "each_rtc=#{er}"
-              er.route[2..-3].each_slice(2) do |s, d| ## 使用するスイッチ間リンクを削除し保持
-                # puts "delete link: #{s} to #{d}"
+              er.route[0..-1].each_slice(2) do |s, d| ## 使用するスイッチ間リンクおよびスイッチ-ホスト間リンクを削除し保持
+                rputs "delete link: #{s} to #{d}"
                 tmp_graph[s] -= [d]
                 tmp_graph[d] -= [s]
               end
@@ -117,26 +117,35 @@ class RTCManager #< Trema::Controller
   # This method smells of :reek:FeatureEnvy but ignores them
   def packet_in(_dpid, message, mode = "shared")
     if (mode == "shared")
-      puts "packet_in is called (shared)"
+      gputs "packet_in is called (shared)"
       @path_manager.packet_in(_dpid, message, mode)
       # for p in Path.all
       #   puts ""
       #   puts "mode: #{p.mode}, path: #{p.full_path}"
       # end
     else
-      puts "packet_in is called (exclusive)"
-      # @path_manager.packet_in(_dpid, message, mode) ## 現時点では何もしない
+      rputs "packet_in is called (exclusive)"
+      ## TODO: Packet_inで実時間通信要求を受け付ける場合の処理をここに記述
+      ## 現時点では何もしない
+      # @path_manager.packet_in(_dpid, message, mode)
     end
+    ## for test (1to5and4to5_test.conf)
+    # @counter += 1
+    # @tmp_msg[@counter] = message
+    # ## RTCManagerのテストは以下に記述
+    # if (@counter == 6)
+    #   yputs "Test started."
+    #   puts ""
+    #   periodSchedule(@tmp_msg[1], @tmp_msg[1].source_mac, @tmp_msg[1].destination_mac, 2)
+    #   periodSchedule(@tmp_msg[4], @tmp_msg[4].source_mac, @tmp_msg[4].destination_mac, 5)
+    # end
+  end
 
-    @counter += 1
-    @tmp_msg[@counter] = message
-    ## RTCManagerのテストは以下に記述
-    if (@counter == 6)
-      yputs "Test started."
-      puts ""
-      periodSchedule(@tmp_msg[1], @tmp_msg[1].source_mac, @tmp_msg[1].destination_mac, 2)
-      periodSchedule(@tmp_msg[4], @tmp_msg[4].source_mac, @tmp_msg[4].destination_mac, 5)
-    end
+  ## for test (RTCManagerTest)
+  def scheduling?(source_mac, destination_mac, period)
+    yputs "scheduling..."
+    puts ""
+    periodSchedule("packet_in message Class", source_mac, destination_mac, period)
   end
 
   def add_port(port, _topology)

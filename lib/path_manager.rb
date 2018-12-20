@@ -52,8 +52,6 @@ class PathManager < Trema::Controller
   ## 最短経路探索のみを実行(Path.createはRTC側で実行) public
   def shortest_path?(src_mac, dst_mac)
     shortest_path = @graph.dijkstra(src_mac, dst_mac)
-    return false unless shortest_path
-    return shortest_path
   end
 
   def delete_used_link(path)

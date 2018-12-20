@@ -49,11 +49,10 @@ class PathManager < Trema::Controller
     @graph.add_link(mac_address, port)
   end
 
-  ## 最短経路探索のみを実行 public
+  ## 最短経路探索のみを実行(Path.createはRTC側で実行) public
   def shortest_path?(src_mac, dst_mac)
     shortest_path = @graph.dijkstra(src_mac, dst_mac)
     return false unless shortest_path
-    # Path.create(shortest_path, packet_in) ## これがないと切断時の検出もできない・・・？
     return shortest_path
   end
 

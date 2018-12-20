@@ -25,8 +25,8 @@ class RTCManager #< Trema::Controller
     ## 0~periodの間でスケジューリング可能な初期位相を探す
     while (initial_phase < period)
       if (routeSchedule(rtc, initial_phase)) ##スケジューリング可
-        yputs "スケジューリング可能です"
         puts ""
+        yputs "スケジューリング可能です"
         # puts @timeslot_table
         @timeslot_table.each do |timeslot, exist_rtcs|
           puts "in timeslot: #{timeslot}"
@@ -48,6 +48,7 @@ class RTCManager #< Trema::Controller
   end
 
   def routeSchedule(rtc, initial_phase)
+    puts "初期位相: #{initial_phase}で経路探索を開始します"
     if (@timeslot_table.all? { |key, each| each.size == 0 }) ##既存のrtcがない場合
       route = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
       if (route) ## 経路あり
@@ -77,15 +78,15 @@ class RTCManager #< Trema::Controller
       route_list = Hash.new() ## 一時的な経路情報格納 {timeslot=>route,,,}
       ## timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除してから探索
       tmp_timeslot_table.each do |timeslot, exist_rtcs|
-        puts "tsl=#{timeslot}"
+        puts "timeslot: #{timeslot}"
         if ((timeslot - initial_phase) % rtc.period == 0)
           tmp_graph = @path_manager.graph.graph.clone ## Graph::graph(Hash Class)
           if (exist_rtcs.size != 0) ## 同一タイムスロット内にrtcが既存
-            puts "既存のRTCあるよ"
+            puts "実時間通信タスクが存在します"
             for er in exist_rtcs
               puts "each_rtc=#{er}"
               er.route[0..-1].each_slice(2) do |s, d| ## 使用するスイッチ間リンクおよびスイッチ-ホスト間リンクを削除し保持
-                rputs "delete link: #{s} to #{d}"
+                puts "delete link: #{s} to #{d}"
                 tmp_graph[s] -= [d]
                 tmp_graph[d] -= [s]
               end
@@ -124,12 +125,12 @@ class RTCManager #< Trema::Controller
       #   puts "mode: #{p.mode}, path: #{p.full_path}"
       # end
     else
-      rputs "packet_in is called (exclusive)"
+      yputs "packet_in is called (exclusive)"
       ## TODO: Packet_inで実時間通信要求を受け付ける場合の処理をここに記述
       ## 現時点では何もしない
       # @path_manager.packet_in(_dpid, message, mode)
     end
-    ## for test (1to5and4to5_test.conf)
+    # # for test (1to5and4to5_test.conf)
     # @counter += 1
     # @tmp_msg[@counter] = message
     # ## RTCManagerのテストは以下に記述
@@ -143,7 +144,6 @@ class RTCManager #< Trema::Controller
 
   ## for test (RTCManagerTest)
   def scheduling?(source_mac, destination_mac, period)
-    yputs "scheduling..."
     puts ""
     periodSchedule("packet_in message Class", source_mac, destination_mac, period)
   end
@@ -174,7 +174,7 @@ class RTCManager #< Trema::Controller
   ## @period_listに新規periodを追加する関数
   def add_period(period)
     @period_list.push(period)
-    puts "plist is #{@period_list}"
+    # puts "plist is #{@period_list}"
     if (@period_list.size == 1)
       @lcm = period
       return 1
@@ -188,7 +188,7 @@ class RTCManager #< Trema::Controller
   ## @period_listに新規periodを追加した場合の
   ## @timeslot_tableの倍率を返す関数
   def add_period?(period)
-    puts "plist is #{@period_list}"
+    # puts "plist is #{@period_list}"
     if (@period_list.size == 0)
       @lcm = period
       # puts "lcm is #{@lcm}"
@@ -209,7 +209,7 @@ class RTCManager #< Trema::Controller
         break
       end
     end
-    puts "plist is #{@period_list}"
+    # puts "plist is #{@period_list}"
     if (@period_list.size == 0)
       @lcm = 0
       puts "timeslot all delete"

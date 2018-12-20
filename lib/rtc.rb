@@ -23,7 +23,11 @@ class RTC
     @initial_phase = initial_phase
     @route = route
     # puts "ip= #{initial_phase}, route= #{route}"
-    puts "route= #{route}"
+    # puts "route= #{route}"
     return self
+  end
+
+  def display
+    puts "rtc_id: #{@rtc_id}, path: " + @route.map(&:to_s).join(" -> ") if route
   end
 end

@@ -29,10 +29,9 @@ class RTCManager < Trema::Controller
         puts ""
         # puts @timeslot_table
         @timeslot_table.each do |timeslot, exist_rtcs|
-          puts "timeslot: #{timeslot}"
+          puts "in timeslot: #{timeslot}"
           exist_rtcs.each do |e|
-            yputs "rtc_id: #{e.rtc_id}"
-            yputs "route: #{e.route}"
+            e.display
           end
         end
         return true
@@ -120,11 +119,10 @@ class RTCManager < Trema::Controller
     if (mode == "shared")
       puts "packet_in is called (shared)"
       @path_manager.packet_in(_dpid, message, mode)
-      for p in Path.all
-        puts ""
-        gputs "mode: #{p.mode}, path: #{p.full_path}"
-        puts ""
-      end
+      # for p in Path.all
+      #   puts ""
+      #   puts "mode: #{p.mode}, path: #{p.full_path}"
+      # end
     else
       puts "packet_in is called (exclusive)"
       # @path_manager.packet_in(_dpid, message, mode) ## 現時点では何もしない

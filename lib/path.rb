@@ -1,5 +1,6 @@
 require "active_support/core_ext/class/attribute_accessors"
 require "trema"
+require "cputs"
 
 # List of shortest-path flow entries.
 class Path < Trema::Controller
@@ -27,18 +28,27 @@ class Path < Trema::Controller
     @full_path = full_path
     @packet_in = packet_in
     if (@mode == "shared")
-      logger.info "Creating path: " + @full_path.map(&:to_s).join(" -> ")
+      # logger.info "Creating path: " + @full_path.map(&:to_s).join(" -> ")
+      gputs "Creating path: " + @full_path.map(&:to_s).join(" -> ")
       flow_mod_add_to_each_switch
     else ## flowmodしない
-      logger.info "Creating path(RTC): " + @full_path.map(&:to_s).join(" -> ")
+      # logger.info "Creating path (RTC): " + @full_path.map(&:to_s).join(" -> ")
+      yputs "Creating path (RTC): " + @full_path.map(&:to_s).join(" -> ")
     end
     self
   end
 
   def destroy
-    logger.info "Deleting path: " + @full_path.map(&:to_s).join(" -> ")
-    Path.destroy self
-    flow_mod_delete_to_each_switch
+    if (@mode == "shared")
+      # logger.info "Deleting path: " + @full_path.map(&:to_s).join(" -> ")
+      rputs "Deleting path: " + @full_path.map(&:to_s).join(" -> ")
+      Path.destroy self
+      flow_mod_delete_to_each_switch
+    else
+      rputs "Deleting path (RTC): " + @full_path.map(&:to_s).join(" -> ")
+      Path.destroy self
+      ## Exclusiveのpathが消えた際の動作は???
+    end
   end
 
   def port?(port)

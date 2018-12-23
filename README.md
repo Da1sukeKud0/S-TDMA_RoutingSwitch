@@ -13,8 +13,9 @@ S-TDMA_RoutingSwitch
 
 実行環境
 -------------
-* Ruby 2.3.7
+* [Ruby 2.3.7 (on rvm)][rvm]
 * [Open vSwitch][openvswitch] (`apt-get install openvswitch-switch`).
+実行環境の構築に失敗する場合は/environment/README.mdを参照してください。
 
 [rvm]: https://rvm.io/
 [openvswitch]: https://openvswitch.org/

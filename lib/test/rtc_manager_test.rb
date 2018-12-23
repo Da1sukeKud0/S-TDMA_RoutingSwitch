@@ -1,12 +1,14 @@
 require_relative "../rtc_manager"
 # require_relative "../../vendor/topology/lib/topology"
 # require "pio"
+require "json"
+require "date"
 
 class RTCManagerTest
-  def initialize
+  def initialize(edges = [])
     @rtc_manager = RTCManager.new.tap(&:start)
     @topology = "Topology Class" ##dummy of Topology.new
-    @edges = [] ## [[src,dst],[src,dst],,,]
+    @edges = edges ## [[src,dst],[src,dst],,,]
   end
 
   Port = Struct.new(:dpid, :port_no) do
@@ -68,40 +70,32 @@ class RTCManagerTest
     @rtc_manager.scheduling?("h3", "h4", 2)
   end
 
-  ## 指定回数のスケジューリング探索の実行
-  def add_rtcs(num)
-    num = num.to_i
+  ## 指定回数分の実時間通信要求を生成
+  def make_testcase(numOfReq)
+    @numOfReq = numOfReq.to_i
     ## 重複しないようにnum回分のsrc,dstをランダムに選択(periodは重複可)
-    srcList = []
-    dstList = []
+    @srcList = []
+    @dstList = []
+    @periodList = []
     l = Array.new(@numOfSwitch) { |index| index + 1 }
     popMax = @numOfSwitch
-    num.times do
-      srcList.push(l.delete_at(rand(popMax)))
+    @numOfReq.times do
+      @srcList.push(l.delete_at(rand(popMax)))
       popMax -= 1
-      dstList.push(l.delete_at(rand(popMax)))
+      @dstList.push(l.delete_at(rand(popMax)))
       popMax -= 1
+      @periodList.push(rand(4) + 2)
     end
+    save_tag
+  end
 
-    ## num回分探索の準備
-    result = [] ## num回分の探索結果を格納 [r, r, ... , r]
-    tagList = Hash.new ## データのタグリスト(rtcの実行順(turn)を除く)
-    tagList.store("type", @type) ## トポロジタイプ
-    tagList.store("snum", @numOfSwitch) ## スイッチ数
-    tagList.store("rnum", num) ## RTC数
-    tagList.store("lnum", @edges.size) ## リンク数(switchNum-complexity)*complexityで算出可能
-    if (@type == "BA")
-      tagList.store("cplx", @complexity) ## 複雑度
-    elsif (@type == "tree")
-      tagList.store("dep", @depth)
-      tagList.store("fan", @fanout)
-    end
-
-    ## num回分探索
-    for n in Range.new(1, num)
+  ## 指定回数分のスケジューリング探索
+  def run_testcase(srcList = @srcList, dstList = @dstList, periodList = @periodList)
+    result = [] ## @numOfReq回分の探索結果を格納 [r, r, ... , r]
+    for n in Range.new(1, srcList.size)
       src = srcList.pop
       dst = dstList.pop
-      period = rand(4) + 2
+      period = periodList.pop
       puts ""
       puts "schedulable?(src: h#{src}, dst: h#{dst}, period: #{period})"
       # 以下でスケジューリング処理の時間を計測
@@ -109,13 +103,22 @@ class RTCManagerTest
       tf = @rtc_manager.scheduling?(src, dst, period)
       puts time = (Time.now - st)
       ## 計測結果をresultに格納
-      r = tagList.clone
+      r = @tagList.clone
       r.store("turn", n) ## RTC実行順
       r.store("time", time) ## 処理時間
       r.store("tf", tf) ## add_rtc?
       result.push(r)
     end
     return result
+  end
+
+  def save_testcase
+    hash = Hash.new
+    hash.store("edges", @edges)
+    hash.store("numOfReq", @numOfReq)
+    hash.store("srcList", @srcList)
+    hash.store("dstList", @dstList)
+    hash.store("periodList", @periodList)
   end
 
   private
@@ -134,6 +137,21 @@ class RTCManagerTest
       @rtc_manager.add_host("h" + n.to_s, Port.new(n, n), @topology) ## 本来はPio::Mac.new("11:11:11:11:11:11") だが簡略化
     end
   end
+
+  ## 結果出力に用いる各種情報
+  def save_tag
+    @tagList = Hash.new ## データのタグリスト(rtcの実行順(turn)を除く)
+    @tagList.store("type", @type) ## トポロジタイプ
+    @tagList.store("snum", @numOfSwitch) ## スイッチ数
+    @tagList.store("rnum", @numOfReq) ## RTC要求数
+    @tagList.store("lnum", @edges.size) ## リンク数(switchNum-complexity)*complexityで算出可能
+    if (@type == "BA")
+      @tagList.store("cplx", @complexity) ## 複雑度
+    elsif (@type == "tree")
+      @tagList.store("dep", @depth)
+      @tagList.store("fan", @fanout)
+    end
+  end
 end
 
 def sh(command)
@@ -147,8 +165,28 @@ def output_json(file_name, hash)
   end
 end
 
+## BAモデルでの各種パラメータを自動設定し実行
+def test_BA_loop()
+  output = []
+  numOfSwitch = 10
+  10.times do
+    cplx = 1
+    5.times do
+      10.times do
+        rtcm = RTCManagerTest.new
+        rtcm.make_ba_topology(numOfSwitch, cplx)
+        rtcm.make_testcase(5)
+        puts res = rtcm.run_testcase
+        res.each { |each| output.push(each) }
+      end
+      cplx += 1
+    end
+    numOfSwitch += 10
+  end
+  file_name = "rtcm_test_20181224.json"
+  output_json(file_name, output)
+end
+
 if __FILE__ == $0
-  rtcm = RTCManagerTest.new
-  rtcm.make_ba_topology(20, 1)
-  rtcm.add_rtcs(5)
+  test_BA_loop
 end

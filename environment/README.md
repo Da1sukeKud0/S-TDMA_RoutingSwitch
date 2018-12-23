@@ -23,6 +23,7 @@ rvm @global do gem uninstall bundler
 gem install bundler -v 1.11.2
 bundle install --binstubs
 ```
+これでもダメな場合、上記の手順を再度実行し最後の``` bundle install --binstubs ```を実行する前にtrema/topologyにて``` bundle install --binstubs ```を実行すると上手く行ったケースがあったので試してみてください。
 
 ### 最後に
 .ruby-versionにより、本プロジェクトのディレクトリに移動した時点でRubyのバージョンが指定のものに切り替わるので、注意されたし。

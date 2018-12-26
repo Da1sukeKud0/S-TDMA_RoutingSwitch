@@ -29,7 +29,7 @@ class RTCManager #< Trema::Controller
         yputs "スケジューリング可能です"
         # puts @timeslot_table
         @timeslot_table.each do |timeslot, exist_rtcs|
-          puts "in timeslot: #{timeslot}"
+          puts "in timeslot #{timeslot}:"
           exist_rtcs.each do |e|
             e.display
           end
@@ -48,10 +48,10 @@ class RTCManager #< Trema::Controller
   end
 
   def routeSchedule(rtc, initial_phase)
-    puts "初期位相: #{initial_phase}で経路探索を開始します"
+    puts "初期位相 #{initial_phase} で経路探索を開始します"
     if (@timeslot_table.all? { |key, each| each.size == 0 }) ##既存のrtcがない場合
       route = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
-      if (route) ## 経路あり
+      if (route)
         ## 使用する各スロットにrtcを格納(経路は全て同じ)
         rtc.setSchedule(initial_phase, route)
         for i in Range.new(0, rtc.period - 1)
@@ -62,41 +62,53 @@ class RTCManager #< Trema::Controller
           end
         end
         add_period(rtc.period)
-        Path.create(route, @message, "Exclusive")
-      else ## 経路なし
+        # Path.create(route, @message, "Exclusive") ## for test
+      else
+        puts "ホスト未登録もしくは到達不可能"
         return false
       end
     else ## 既存のrtcがある場合
       ## 計算用のtmp_timeslot_tableに@timeslot_tableを複製(倍率はadd_period?に従う)
+      ## また計算用のtmp_graphを生成し複製してgraph_tableに格納(倍率はadd_period?に従う)
+      ## TODO: initial_phaseが変更されてもこの処理の動作は変わらないので、periodScheduleレベルで処理を実行すべき
       tmp_timeslot_table = Hash.new { |hash, key| hash[key] = [] }
+      graph_table = Hash.new
       @timeslot_table.each do |timeslot, exist_rtcs|
+        ## timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除しgraph_tableに格納
+        tmp_graph = @path_manager.graph.graph.clone ## Graph::graph(Hash Class)
+        if (exist_rtcs.size != 0) ## 同一タイムスロット内にrtcが既存
+          for er in exist_rtcs
+            er.route[0..-1].each_slice(2) do |s, d| ## 使用するスイッチ間リンクおよびスイッチ-ホスト間リンクを削除し保持
+              tmp_graph[s] -= [d]
+              tmp_graph[d] -= [s]
+            end
+          end
+        end
+        ## @timeslot_tableおよびtmp_graphの複製
         for i in Range.new(0, add_period?(rtc.period) - 1)
           tmp_timeslot_table[timeslot + @lcm * i] = @timeslot_table[timeslot].clone
+          graph_table[timeslot + @lcm * i] = tmp_graph.clone
         end
       end
       tmp_timeslot_table = sort_h(tmp_timeslot_table)
+      # graph_table = sort_h(tmp_graph_table)
       route_list = Hash.new() ## 一時的な経路情報格納 {timeslot=>route,,,}
       ## timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除してから探索
       tmp_timeslot_table.each do |timeslot, exist_rtcs|
-        puts "timeslot: #{timeslot}"
+        print "timeslot #{timeslot}: "
         if ((timeslot - initial_phase) % rtc.period == 0)
-          tmp_graph = @path_manager.graph.graph.clone ## Graph::graph(Hash Class)
-          if (exist_rtcs.size != 0) ## 同一タイムスロット内にrtcが既存
-            puts "実時間通信タスクが存在します"
-            for er in exist_rtcs
-              puts "each_rtc=#{er}"
-              er.route[0..-1].each_slice(2) do |s, d| ## 使用するスイッチ間リンクおよびスイッチ-ホスト間リンクを削除し保持
-                puts "delete link: #{s} to #{d}"
-                tmp_graph[s] -= [d]
-                tmp_graph[d] -= [s]
-              end
-            end
+          if (graph_table[timeslot][rtc.destination_mac].empty?) ## ホスト未登録だとfalse
+            rputs "ホスト未登録"
+            return false
           end
-          ##
-          return false if tmp_graph[rtc.destination_mac].empty? ## ホスト未登録だとfalse
-          route = Dijkstra.new(tmp_graph).run(rtc.source_mac, rtc.destination_mac)
-          return false unless route ## 到達可能な経路なし
-          route_list[timeslot] = route.reject { |each| each.is_a? Integer }
+          route = Dijkstra.new(graph_table[timeslot]).run(rtc.source_mac, rtc.destination_mac)
+          if (route)
+            puts "到達可能"
+            route_list[timeslot] = route.reject { |each| each.is_a? Integer }
+          else ## 到達可能な経路なし
+            puts "到達不可能"
+            return false
+          end
         end
       end
       ## (ここでfalseでない時点で)使用する全てのタイムスロットでルーティングが可能
@@ -104,7 +116,7 @@ class RTCManager #< Trema::Controller
       add_period(rtc.period) ## period_listの更新
       ## @timeslot_tableに対しroute_listに従ってrtcを追加
       route_list.each do |key, array|
-        Path.create(array, @message, "Exclusive") ##同じ経路でもpathが生成されてしまう・・・？
+        # Path.create(array, @message, "Exclusive") ##同じ経路でもpathが生成されてしまう・・・？ ## for test
         tmp_rtc = rtc.clone
         tmp_rtc.setSchedule(initial_phase, array)
         @timeslot_table[key].push(tmp_rtc)

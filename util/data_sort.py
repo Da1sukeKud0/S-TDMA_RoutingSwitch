@@ -10,6 +10,7 @@ from matplotlib import pyplot
 
 class JsonHelper:
     def __init__(self, file_name):
+        self.file_name = file_name
         with open(file_name) as f:
             self.dics = json.load(f)
             # print(self.dics)
@@ -25,9 +26,9 @@ class JsonHelper:
             if (d[sortby] not in result):
                 result[d[sortby]] = []
             result[d[sortby]].append(d["time"])
-        self.__ave(result)
+        self.__ave(result, sortby)
 
-    def __ave(self, dic):
+    def __ave(self, dic, sortby):
         xval = []
         yval = []
         for k, v in sorted(dic.items(), key=lambda x: x[0]):
@@ -36,8 +37,8 @@ class JsonHelper:
             xval.append(k)
             yval.append(ave)
         pyplot.plot(xval, yval, "o")
-        pyplot.ylabel(u'during time [s]')  # , fontproperties=fp)
-        pyplot.xlabel(u'xlabel')  # , fontproperties=fp)
+        pyplot.ylabel('during time [s]')  # , fontproperties=fp)
+        pyplot.xlabel(sortby)  # , fontproperties=fp)
         # pyplot.xticks(
         # [1.25, 2.25], [u'目盛りは', 'fontproperties=fp'], fontproperties=fp)
         # pyplot.title(u'タイトルはfontproperties=fp', fontproperties=fp)
@@ -48,7 +49,7 @@ class JsonHelper:
 if __name__ == '__main__':
     args = sys.argv
     if (len(args) != 2):
-        print 'usage: *.py filename'
+        print 'usage: *.py file_name'
         quit()
     jh = JsonHelper(str(args[1]))
     jh.sort_by("turn")

@@ -2,7 +2,6 @@ require_relative "../rtc_manager"
 # require_relative "../../vendor/topology/lib/topology"
 # require "pio"
 require "json"
-require "date"
 
 class RTCManagerTest
   def initialize(edges = [])
@@ -166,27 +165,27 @@ def output_json(file_name, hash)
 end
 
 ## BAモデルでの各種パラメータを自動設定し実行
-def test_BA_loop(file_name)
+def test_BA_loop(file_name, snum_min = 10, snum_max = 100, snum_interval = 5, cplx_min = 1, cplx_max = 5, loops = 10)
   output = []
-  numOfSwitch = 10
-  10.times do
-    cplx = 1
-    5.times do
-      10.times do
+  snum = snum_min
+  while (snum <= snum_max)
+    cplx = cplx_min
+    while (cplx <= cplx_max)
+      loops.times do
         rtcm = RTCManagerTest.new
-        rtcm.make_ba_topology(numOfSwitch, cplx)
+        rtcm.make_ba_topology(snum, cplx)
         rtcm.make_testcase(5)
         puts res = rtcm.run_testcase
         res.each { |each| output.push(each) }
       end
       cplx += 1
     end
-    numOfSwitch += 10
+    snum += snum_interval
   end
   output_json(file_name, output)
 end
 
 if __FILE__ == $0
-  file_name = "rtcm_" + Time.new.strftime("%Y%m%d_%H:%M")
+  file_name = "test/rtcm_" + Time.new.strftime("%Y%m%d_%H%M") + ".json"
   test_BA_loop(file_name)
 end

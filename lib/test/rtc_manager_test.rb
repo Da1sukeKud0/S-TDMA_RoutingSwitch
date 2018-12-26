@@ -166,7 +166,7 @@ def output_json(file_name, hash)
 end
 
 ## BAモデルでの各種パラメータを自動設定し実行
-def test_BA_loop()
+def test_BA_loop(file_name)
   output = []
   numOfSwitch = 10
   10.times do
@@ -183,10 +183,10 @@ def test_BA_loop()
     end
     numOfSwitch += 10
   end
-  file_name = "rtcm_test_20181224.json"
   output_json(file_name, output)
 end
 
 if __FILE__ == $0
-  test_BA_loop
+  file_name = "rtcm_" + Time.new.strftime("%Y%m%d_%H:%M")
+  test_BA_loop(file_name)
 end

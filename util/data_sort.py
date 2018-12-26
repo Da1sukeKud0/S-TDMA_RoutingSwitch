@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import json
+import sys
 import numpy
 from matplotlib import pyplot
 # from matplotlib.font_manager import FontProperties
@@ -45,27 +46,35 @@ class JsonHelper:
 
 
 if __name__ == '__main__':
-    jh = JsonHelper("test/rtcm_test_s5to100_c1to5_rtcr5.json")
+    args = sys.argv
+    if (len(args) != 2):
+        print 'usage: *.py filename'
+        quit()
+    jh = JsonHelper(str(args[1]))
     jh.sort_by("turn")
     jh.sort_by("snum")
     jh.sort_by("cplx")
     jh.sort_by("lnum")
 
 """
-取得したデータは配列内dict
-dictのkey, valの内訳は以下
-r.store("type", @type) ## トポロジタイプ
-r.store("snum", @switchNum) ## スイッチ数
-r.store("rnum", num) ## RTC数
-r.store("lnum", @edges.size) ## リンク数(switchNum-complexity)*complexityで算出可能
-r.store("turn", n) ## RTC実行順
-r.store("time", time) ## 処理時間
-r.store("tf", tf) ## add_rtc?
-result.push(r)
-if (@type == "BA")
-    r.store("cplx", @complexity) ## 複雑度
-elsif (@type == "tree")
-    r.store("dep", @depth) ## 深さ(ホストの階層を含む)
-    r.store("fan", @fanout) ## 1つの親ノードに接続する子ノードの数
+取得したデータは配列内dict形式。内訳は以下
+## 結果出力に用いる各種情報
+def save_tag
+    @tagList = Hash.new ## データのタグリスト(rtcの実行順(turn)を除く)
+    @tagList.store("type", @type) ## トポロジタイプ
+    @tagList.store("snum", @numOfSwitch) ## スイッチ数
+    @tagList.store("rnum", @numOfReq) ## RTC要求数
+    @tagList.store("lnum", @edges.size) ## リンク数(switchNum-complexity)*complexityで算出可能
+    if (@type == "BA")
+        @tagList.store("cplx", @complexity) ## 複雑度
+    elsif (@type == "tree")
+        @tagList.store("dep", @depth)
+        @tagList.store("fan", @fanout)
+    end
 end
+## 計測結果をresultに格納
+    r = @tagList.clone
+    r.store("turn", n) ## RTC実行順
+    r.store("time", time) ## 処理時間
+    r.store("tf", tf) ## add_rtc?
 """

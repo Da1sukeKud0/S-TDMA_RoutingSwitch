@@ -28,7 +28,16 @@ class JsonHelper:
             result[d[sortby]].append(d["time"])
         self.__ave(result, sortby)
 
-    def __ave(self, dic, sortby):
+    def all_ave(self):
+        result = {}
+        result["all"] = []
+        for d in self.dics:
+            result["all"].append(d["time"])
+        print("")
+        print("all average: " + str(sum(result["all"])/len(result["all"])))
+        print("")
+
+    def __ave(self, dic, sortby="all"):
         xval = []
         yval = []
         for k, v in sorted(dic.items(), key=lambda x: x[0]):
@@ -56,6 +65,7 @@ if __name__ == '__main__':
     jh.sort_by("snum")
     jh.sort_by("cplx")
     jh.sort_by("lnum")
+    jh.all_ave()
 
 """
 取得したデータは配列内dict形式。内訳は以下

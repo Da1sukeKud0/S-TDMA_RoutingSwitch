@@ -1,0 +1,288 @@
+[LineProf] ===============================================================
+
+lib/test/rtc_manager_test.rb
+               |   8  class RTCManagerTest
+               |   9    def initialize(edges = [])
+   0.5ms     4 |  10      @rtc_manager = RTCManager.new.tap(&:start)
+               |  11      @topology = "Topology Class" ##dummy of Topology.new
+               |  12      @edges = edges ## [[src,dst],[src,dst],,,]
+              .......
+               |  25  
+               |  26      def to_s
+   2.6ms  3160 |  27        "#{format "%#x", dpid}:#{number}"
+               |  28      end
+               |  29    end
+              .......
+               |  38      @complexity = complexity.to_i
+               |  39      ## barabasi_albert_graph.pyを外部実行
+ 948.1ms     3 |  40      sh ("python ~/trema/routing_switch/lib/test/barabasi_albert_graph.py #{@numOfSwitch} #{@complexity}")
+               |  41      ## 生成されたリンクを@edgesに格納
+   3.8ms     4 |  42      File.open(".edges") do |file|
+   3.7ms     1 |  43        file.each_line do |line|
+   2.2ms   980 |  44          str = line[1..line.size - 3].split(", ").map(&:to_i)
+   0.2ms   196 |  45          @edges.push(str)
+               |  46        end
+               |  47      end
+  33.1ms     1 |  48      make_link_and_make_host
+               |  49    end
+               |  50  
+              .......
+               |  94    def run_testcase(srcList = @srcList, dstList = @dstList, periodList = @periodList)
+               |  95      result = [] ## @numOfReq回分の探索結果を格納 [r, r, ... , r]
+ 226302.2ms     3 |  96      for n in Range.new(1, srcList.size)
+               |  97        src = srcList.pop
+               |  98        dst = dstList.pop
+              .......
+               |  102        # 以下でスケジューリング処理の時間を計測
+               |  103        st = Time.now
+ 226301.7ms     5 |  104        tf = @rtc_manager.scheduling?(src, dst, period)
+               |  105        puts time = (Time.now - st)
+               |  106        ## 計測結果をresultに格納
+              .......
+               |  129      ## dpid:1において、dpid:2へのリンクで使用するポートは0x1:2
+               |  130      ## またホストのMACアドレスは"h1"、ホストへのリンクで使用するポートは0x1:1
+  26.6ms     1 |  131      @edges.each do |src, dst|
+   5.7ms   588 |  132        @rtc_manager.add_port(Port.new(src, dst), @topology)
+   5.6ms   588 |  133        @rtc_manager.add_port(Port.new(dst, src), @topology)
+  13.9ms   980 |  134        @rtc_manager.add_link(Port.new(src, dst), Port.new(dst, src), @topology)
+               |  135      end
+   6.5ms     3 |  136      for n in Range.new(1, @numOfSwitch)
+   2.6ms   300 |  137        @rtc_manager.add_port(Port.new(n, n), @topology)
+   3.5ms   400 |  138        @rtc_manager.add_host("h" + n.to_s, Port.new(n, n), @topology) ## 本来はPio::Mac.new("11:11:11:11:11:11") だが簡略化
+               |  139      end
+               |  140    end
+              .......
+               |  157  
+               |  158  def sh(command)
+ 948.1ms     1 |  159    system(command) || fail("#{command} failed.")
+               |  160    @logger.debug(command) if @logger
+               |  161  end
+               |  162  
+               |  163  def output_json(file_name, hash)
+   0.2ms     4 |  164    File.open(file_name, "w") do |file|
+               |  165      JSON.dump(hash, file)
+               |  166    end
+              .......
+               |  193      file_name = "test/rtcm_" + Time.new.strftime("%Y%m%d_%H%M") + ".json"
+               |  194      output = []
+   0.5ms     2 |  195      rtcm = RTCManagerTest.new
+ 985.1ms     1 |  196      rtcm.make_ba_topology(100, 2)
+               |  197      rtcm.make_testcase(5)
+ 226302.4ms    98 |  198      puts res = rtcm.run_testcase
+               |  199      res.each { |each| output.push(each) }
+   0.2ms     1 |  200      output_json(file_name, output)
+               |  201    end
+               |  202    LineProf.report(profile)
+
+lib/rtc_manager.rb
+               |  11  class RTCManager #< Trema::Controller
+               |  12    def start
+   0.4ms     4 |  13      @path_manager = PathManager.new.tap(&:start)
+               |  14      @timeslot_table = Hash.new { |hash, key| hash[key] = [] } ## {timeslot=>[rtc,rtc,,,], ,,}
+               |  15      @period_list = [] ## 周期の種類を格納(同じ数値の周期も重複して格納)
+              .......
+               |  21    def periodSchedule(message, source_mac, destination_mac, period)
+               |  22      @message = message
+   0.4ms    10 |  23      rtc = RTC.new(source_mac, destination_mac, period)
+               |  24      initial_phase = 0 ##初期位相0に設定
+               |  25      ## 既存のRTCが存在する場合はtmp_timeslot_tableを生成
+              .......
+               |  29        @tmp_timeslot_table = Hash.new { |hash, key| hash[key] = [] }
+               |  30        @graph_table = Hash.new
+ 618.8ms     4 |  31        @timeslot_table.each do |timeslot, exist_rtcs|
+               |  32          ## timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除しgraph_tableに格納
+ 213.5ms 128115 |  33          tmp_graph = @path_manager.graph.graph.clone ## Graph::graph(Hash Class)
+               |  34          if (exist_rtcs.size != 0) ## 同一タイムスロット内にrtcが既存
+   8.9ms    29 |  35            for er in exist_rtcs
+   8.8ms   192 |  36              er.route[0..-1].each_slice(2) do |s, d| ## 使用するスイッチ間リンクおよびスイッチ-ホスト間リンクを削除し保持
+   3.9ms  2620 |  37                tmp_graph[s] -= [d]
+   3.8ms  2620 |  38                tmp_graph[d] -= [s]
+               |  39              end
+               |  40            end
+               |  41          end
+               |  42          ## @timeslot_tableおよびtmp_graphの複製
+ 396.1ms   260 |  43          for i in Range.new(0, add_period?(rtc.period) - 1)
+   0.5ms   360 |  44            @tmp_timeslot_table[timeslot + @lcm * i] = @timeslot_table[timeslot].clone
+ 394.7ms 236520 |  45            @graph_table[timeslot + @lcm * i] = tmp_graph.clone
+               |  46          end
+               |  47        end
+   1.2ms     4 |  48        @tmp_timeslot_table = sort_h(@tmp_timeslot_table)
+               |  49        # graph_table = sort_h(graph_table)
+               |  50      end
+               |  51      ## 0~periodの間でスケジューリング可能な初期位相を探す
+               |  52      while (initial_phase < period)
+ 225670.8ms     5 |  53        if (routeSchedule(rtc, initial_phase)) ##スケジューリング可
+               |  54          puts ""
+               |  55          yputs "スケジューリング可能です"
+               |  56          # puts @timeslot_table
+  10.1ms     5 |  57          @timeslot_table.each do |timeslot, exist_rtcs|
+   1.2ms   625 |  58            puts "in timeslot #{timeslot}:"
+   8.5ms   125 |  59            exist_rtcs.each do |e|
+   8.3ms   140 |  60              e.display
+               |  61            end
+               |  62          end
+              .......
+               |  77      puts "初期位相 #{initial_phase} で経路探索を開始します"
+               |  78      if (@timeslot_table.all? { |key, each| each.size == 0 }) ##既存のrtcがない場合
+ 5573.4ms     1 |  79        route = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
+               |  80        if (route)
+               |  81          ## 使用する各スロットにrtcを格納(経路は全て同じ)
+              .......
+               |  97        route_list = Hash.new() ## 一時的な経路情報格納 {timeslot=>route,,,}
+               |  98        ## timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除してから探索
+ 220095.7ms     4 |  99        @tmp_timeslot_table.each do |timeslot, exist_rtcs|
+   1.0ms   360 |  100          print "timeslot #{timeslot}: "
+               |  101          if ((timeslot - initial_phase) % rtc.period == 0)
+               |  102            if (@graph_table[timeslot][rtc.destination_mac].empty?) ## ホスト未登録だとfalse
+              .......
+               |  104              return false
+               |  105            end
+ 220091.9ms   120 |  106            route = Dijkstra.new(@graph_table[timeslot]).run(rtc.source_mac, rtc.destination_mac)
+               |  107            if (route)
+   0.9ms   160 |  108              puts "到達可能"
+   0.8ms   440 |  109              route_list[timeslot] = route.reject { |each| each.is_a? Integer }
+               |  110            else ## 到達可能な経路なし
+               |  111              puts "到達不可能"
+              .......
+               |  118        add_period(rtc.period) ## period_listの更新
+               |  119        ## @timeslot_tableに対しroute_listに従ってrtcを追加
+   0.3ms     4 |  120        route_list.each do |key, array|
+               |  121          # Path.create(array, @message, "Exclusive") ## TODO: 同じ経路でもpathが生成されてしまう・・・？ ## for test
+               |  122          tmp_rtc = rtc.clone
+              .......
+               |  124          @timeslot_table[key].push(tmp_rtc)
+               |  125        end
+   0.9ms     4 |  126        @timeslot_table = sort_h(@timeslot_table)
+               |  127      end
+               |  128      return true
+              .......
+               |  160    def scheduling?(source_mac, destination_mac, period)
+               |  161      puts ""
+ 226301.6ms     5 |  162      periodSchedule("packet_in message Class", source_mac, destination_mac, period)
+               |  163    end
+               |  164  
+               |  165    def add_port(port, _topology)
+  11.4ms   492 |  166      @path_manager.add_port(port, _topology)
+               |  167    end
+               |  168  
+              .......
+               |  173    # TODO: update all paths
+               |  174    def add_link(port_a, port_b, _topology)
+  12.5ms   196 |  175      @path_manager.add_link(port_a, port_b, _topology)
+               |  176    end
+               |  177  
+              .......
+               |  181  
+               |  182    def add_host(mac_address, port, _topology)
+   3.0ms   100 |  183      @path_manager.add_host(mac_address, port, _topology)
+               |  184    end
+               |  185  
+              .......
+               |  210      else
+               |  211        old_lcm = @lcm
+   0.3ms   235 |  212        res = (@lcm.lcm(period)) / old_lcm
+               |  213        # puts "#{res} bai !"
+               |  214      end
+              .......
+               |  256  ## sort(Hash): Ruby1.9で廃止されたらしい
+               |  257  def sort_h(hash)
+   2.0ms  1414 |  258    array = hash.sort
+               |  259    hash = {}
+               |  260    array.each do |a|
+
+lib/path_manager.rb
+               |  28  
+               |  29    def add_port(port, _topology)
+  10.0ms   984 |  30      @graph.add_link(port.dpid, port)
+               |  31    end
+               |  32  
+              .......
+               |  37    # TODO: update all paths
+               |  38    def add_link(port_a, port_b, _topology)
+  12.1ms   196 |  39      @graph.add_link(port_a, port_b)
+               |  40    end
+               |  41  
+              .......
+               |  47  
+               |  48    def add_host(mac_address, port, _topology)
+   2.8ms   100 |  49      @graph.add_link(mac_address, port)
+               |  50    end
+               |  51  
+               |  52    ## 最短経路探索のみを実行(Path.createはRTC側で実行) public
+               |  53    def shortest_path?(src_mac, dst_mac)
+ 5573.4ms     1 |  54      shortest_path = @graph.dijkstra(src_mac, dst_mac)
+               |  55    end
+               |  56  
+
+lib/graph.rb
+               |  20  
+               |  21    def add_link(node_a, node_b)
+   4.9ms  2744 |  22      @graph[node_a] += [node_b]
+  14.1ms  8080 |  23      @graph[node_b] += [node_a]
+               |  24    end
+               |  25  
+              .......
+               |  37    def dijkstra(source_mac, destination_mac)
+               |  38      return false if @graph[destination_mac].empty?
+ 5573.3ms     3 |  39      route = Dijkstra.new(@graph).run(source_mac, destination_mac)
+               |  40      return false unless route
+               |  41      route.reject { |each| each.is_a? Integer } ## return Array
+
+lib/rtc.rb
+               |  29  
+               |  30    def display
+   7.8ms  1630 |  31      puts "rtc_id: #{@rtc_id}, path: " + @route.map(&:to_s).join(" -> ") if route
+               |  32    end
+               |  33  end
+
+lib/dijkstra.rb
+               |  23  
+               |  24      def <=>(other)
+ 42641.3ms 82865586 |  25        @distance <=> other.distance
+               |  26      end
+               |  27    end
+              .......
+               |  32      def initialize(array)
+               |  33        @array = []
+   2.1ms    41 |  34        array.each { |each| @array << each }
+ 289.3ms 128125 |  35        @array.sort!
+               |  36      end
+               |  37  
+               |  38      def method_missing(method, *args)
+  37.5ms 56785 |  39        result = @array.__send__ method, *args
+ 185244.1ms 82794287 |  40        @array.sort!
+               |  41        result
+               |  42      end
+              .......
+               |  44  
+               |  45    def initialize(graph)
+  89.0ms 56826 |  46      @all = graph.map { |name, neighbors| Node.new(name, neighbors) }
+ 291.6ms    82 |  47      @unvisited = SortedArray.new(@all)
+               |  48    end
+               |  49  
+               |  50    def run(start, goal)
+  13.5ms    41 |  51      find(start, @all).distance = 0
+ 225192.0ms 85157 |  52      maybe_update_neighbors_of(@unvisited.shift) until @unvisited.empty?
+  10.6ms    41 |  53      result = path_to(goal)
+               |  54      # result.include?(start) ? result : []
+               |  55      return false until result.include?(start)
+              .......
+               |  60  
+               |  61    def maybe_update_neighbors_of(min_node)
+ 39764.1ms 28372 |  62      min_node.neighbors.each do |each|
+ 39657.3ms 128748 |  63        find(each, @all).maybe_update_distance_and_prev(min_node)
+               |  64      end
+               |  65    end
+              .......
+               |  68    # This method smells of :reek:DuplicateMethodCall but ignores them
+               |  69    def path_to(goal)
+  10.3ms    82 |  70      [find(goal, @all)].tap do |result|
+   0.6ms  1139 |  71        result.unshift result.first.prev while result.first.prev
+               |  72      end.map(&:name)
+               |  73    end
+               |  74  
+               |  75    def find(name, list)
+ 39562.9ms 30949221 |  76      found = list.find { |each| each.name == name }
+               |  77      fail "Node #{name.inspect} not found" unless found
+               |  78      found
+

@@ -2,8 +2,8 @@ require_relative "../rtc_manager"
 # require_relative "../../vendor/topology/lib/topology"
 # require "pio"
 require "json"
-require 'rblineprof'
-require 'rblineprof-report'
+require "rblineprof"
+require "rblineprof-report"
 
 class RTCManagerTest
   def initialize(edges = [])
@@ -187,17 +187,21 @@ def test_BA_loop(file_name, snum_min = 10, snum_max = 100, snum_interval = 5, cp
   output_json(file_name, output)
 end
 
-if __FILE__ == $0
+def test_lineprof(file_name)
   target = /#{Dir.pwd}\/./
+  output = []
+  rtcm = RTCManagerTest.new
+  rtcm.make_ba_topology(100, 2)
+  rtcm.make_testcase(5)
   profile = lineprof(target) do
-    file_name = "test/rtcm_" + Time.new.strftime("%Y%m%d_%H%M") + ".json"
-    output = []
-    rtcm = RTCManagerTest.new
-    rtcm.make_ba_topology(100, 2)
-    rtcm.make_testcase(5)
-    puts res = rtcm.run_testcase
-    res.each { |each| output.push(each) }
-    output_json(file_name, output)
+    puts @res = rtcm.run_testcase
   end
+  @res.each { |each| output.push(each) }
+  output_json(file_name, output)
   LineProf.report(profile)
+end
+
+if __FILE__ == $0
+  file_name = "test/rtcm_" + Time.new.strftime("%Y%m%d_%H%M") + ".json"
+  rtcm.test_BA_loop(file_name)
 end

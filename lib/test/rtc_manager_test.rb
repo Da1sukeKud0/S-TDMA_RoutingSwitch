@@ -203,5 +203,5 @@ end
 
 if __FILE__ == $0
   file_name = "test/rtcm_" + Time.new.strftime("%Y%m%d_%H%M") + ".json"
-  rtcm.test_BA_loop(file_name)
+  test_BA_loop(file_name)
 end

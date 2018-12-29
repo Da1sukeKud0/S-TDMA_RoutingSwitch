@@ -32,7 +32,7 @@ class RTCManager #< Trema::Controller
         ## timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除しgraph_tableに格納
         tmp_graph = @path_manager.graph.graph.clone ## Graph::graph(Hash Class)
         if (exist_rtcs.size != 0) ## 同一タイムスロット内にrtcが既存
-          for er in exist_rtcs
+          exist_rtcs.each do |er|
             er.route[0..-1].each_slice(2) do |s, d| ## 使用するスイッチ間リンクおよびスイッチ-ホスト間リンクを削除し保持
               tmp_graph[s] -= [d]
               tmp_graph[d] -= [s]

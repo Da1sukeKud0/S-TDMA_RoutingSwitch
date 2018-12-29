@@ -4,6 +4,7 @@ require_relative "../rtc_manager"
 require "json"
 require "rblineprof"
 require "rblineprof-report"
+require_relative "../cputs"
 
 class RTCManagerTest
   def initialize(edges = [])
@@ -160,14 +161,14 @@ def sh(command)
   @logger.debug(command) if @logger
 end
 
-def output_json(file_name, hash)
-  File.open(file_name, "w") do |file|
+def output_json(hash)
+  File.open(@file_name, "w") do |file|
     JSON.dump(hash, file)
   end
 end
 
 ## BAモデルでの各種パラメータを自動設定し実行
-def test_BA_loop(file_name, snum_min = 10, snum_max = 100, snum_interval = 5, cplx_min = 1, cplx_max = 5, loops = 10)
+def test_BA_loop(snum_min = 10, snum_max = 100, snum_interval = 5, cplx_min = 1, cplx_max = 5, loops = 10)
   output = []
   snum = snum_min
   while (snum <= snum_max)
@@ -184,10 +185,10 @@ def test_BA_loop(file_name, snum_min = 10, snum_max = 100, snum_interval = 5, cp
     end
     snum += snum_interval
   end
-  output_json(file_name, output)
+  output_json(output)
 end
 
-def test_lineprof(file_name)
+def test_lineprof
   target = /#{Dir.pwd}\/./
   output = []
   rtcm = RTCManagerTest.new
@@ -197,11 +198,35 @@ def test_lineprof(file_name)
     puts @res = rtcm.run_testcase
   end
   @res.each { |each| output.push(each) }
-  output_json(file_name, output)
+  output_json(output)
   LineProf.report(profile)
 end
 
+def test_BA_max
+  output = []
+  snum = 100
+  cplx = 2
+  rtcm = RTCManagerTest.new
+  rtcm.make_ba_topology(snum, cplx)
+  rtcm.make_testcase(5)
+  puts res = rtcm.run_testcase
+  res.each { |each| output.push(each) }
+  output_json(output)
+end
+
 if __FILE__ == $0
-  file_name = "test/rtcm_" + Time.new.strftime("%Y%m%d_%H%M") + ".json"
-  test_BA_loop(file_name)
+  ARGV[0] = "bamax" if ARGV[0] == nil
+  @file_name = "test/rtcm_" + ARGV[0] + "_" + Time.new.strftime("%Y%m%d_%H%M") + ".json"
+  case ARGV[0]
+  when "baloop"
+    rputs "test_BA_loop is called."
+    test_BA_loop
+  when "lineprof"
+    rputs "test_lineprof is called."
+    rputs "※このモードでの実行時間はlineprofにより大幅に伸びます"
+    test_lineprof
+  when "bamax"
+    rputs "test_BA_max is called."
+    test_BA_max
+  end
 end

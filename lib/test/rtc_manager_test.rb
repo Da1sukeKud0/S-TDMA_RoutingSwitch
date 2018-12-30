@@ -2,8 +2,6 @@ require_relative "../rtc_manager"
 # require_relative "../../vendor/topology/lib/topology"
 # require "pio"
 require "json"
-require "rblineprof"
-require "rblineprof-report"
 require_relative "../cputs"
 
 class RTCManagerTest
@@ -189,6 +187,8 @@ def test_BA_loop(snum_min = 10, snum_max = 100, snum_interval = 5, cplx_min = 1,
 end
 
 def test_lineprof
+  require "rblineprof"
+  require "rblineprof-report"
   target = /#{Dir.pwd}\/./
   output = []
   rtcm = RTCManagerTest.new
@@ -203,15 +203,12 @@ def test_lineprof
 end
 
 def test_BA_max
-  output = []
   snum = 100
   cplx = 2
   rtcm = RTCManagerTest.new
   rtcm.make_ba_topology(snum, cplx)
   rtcm.make_testcase(5)
-  puts res = rtcm.run_testcase
-  res.each { |each| output.push(each) }
-  output_json(output)
+  puts rtcm.run_testcase
 end
 
 if __FILE__ == $0

@@ -30,3 +30,8 @@
 .edges
 .topo*
 nohup.out
+
+lib/GPATH
+lib/GRTAGS
+lib/GTAGS
+lib/HTML/

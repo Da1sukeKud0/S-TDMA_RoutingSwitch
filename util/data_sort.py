@@ -4,8 +4,8 @@ import json
 import sys
 import numpy
 from matplotlib import pyplot
-# from matplotlib.font_manager import FontProperties
-# fp = FontProperties(fname = "/usr/share/fonts/truetype/fonts-japanese-gothic.ttf")
+from matplotlib.font_manager import FontProperties
+fp = FontProperties(fname = "/usr/share/fonts/truetype/fonts-japanese-gothic.ttf")
 
 
 class JsonHelper:
@@ -13,29 +13,32 @@ class JsonHelper:
         self.file_name = file_name
         with open(file_name) as f:
             self.dics = json.load(f)
-            # print(self.dics)
 
-    # sortbyの要素毎に処理時間の平均値を算出
-    def sort_by(self, sortby):
+    # ソート要素、条件毎に処理時間の平均値を算出
+    # ex) sort_by("turn", snum=100)
+    def sort_by(self, sortkey, **kwargs):
         print("")
-        print("each: " + sortby)
+        print("each: " + sortkey)
+        print("ExactMatch:" + str(kwargs))
         result = {}
         for d in self.dics:
+            # falseの結果は除外
             if not (d["tf"]):
                 continue
-            if (d[sortby] not in result):
-                result[d[sortby]] = []
-            result[d[sortby]].append(d["time"])
-        self.__ave(result, sortby)
+            # ExactMatch
+            if not self.__exactMatch(d, kwargs):
+                continue
+            # resultに処理時間を格納
+            if (d[sortkey] not in result):
+                result[d[sortkey]] = []
+            result[d[sortkey]].append(d["time"])
+        self.__ave(result, sortkey)
 
-    def all_ave(self):
-        result = {}
-        result["all"] = []
-        for d in self.dics:
-            result["all"].append(d["time"])
-        print("")
-        print("all average: " + str(sum(result["all"])/len(result["all"])))
-        print("")
+    def __exactMatch(self, target, pattern):
+        for k, v in pattern.items():
+            if not (target[str(k)] == int(v)):
+                return False
+        return True
 
     def __ave(self, dic, sortby="all"):
         xval = []
@@ -46,13 +49,32 @@ class JsonHelper:
             xval.append(k)
             yval.append(ave)
         pyplot.plot(xval, yval, "o")
-        pyplot.ylabel('during time [s]')  # , fontproperties=fp)
-        pyplot.xlabel(sortby)  # , fontproperties=fp)
+        pyplot.ylabel(u'スケジューリング処理に要した時間 [s]', fontproperties=fp)
+        pyplot.xlabel(self.__getLabel(sortby), fontproperties=fp)
         # pyplot.xticks(
         # [1.25, 2.25], [u'目盛りは', 'fontproperties=fp'], fontproperties=fp)
         # pyplot.title(u'タイトルはfontproperties=fp', fontproperties=fp)
         pyplot.show()
         # pyplot.savefig("tmp.png")
+
+    def __getLabel(self, key):
+        labels = {
+            "snum": u"ネットワーク内に存在するOpenFlowスイッチの数",
+            "rnum": u"システムに入力された実時間要求の数",
+            "lnum": u"ネットワーク内に存在するリンクの数",
+            "turn": u"システムへの実時間通信要求の入力順",
+            "cplx": u"BAモデルに基づくスケールフリーネットワークの混雑度"
+        }
+        return labels.get(key, "unknown")
+
+    def getFlatAve(self):
+        result = {}
+        result["all"] = []
+        for d in self.dics:
+            result["all"].append(d["time"])
+        print("")
+        print("all average: " + str(sum(result["all"])/len(result["all"])))
+        print("")
 
 
 if __name__ == '__main__':
@@ -61,11 +83,11 @@ if __name__ == '__main__':
         print 'usage: *.py file_name'
         quit()
     jh = JsonHelper(str(args[1]))
-    jh.sort_by("turn")
+    jh.sort_by("turn", snum=100)
     jh.sort_by("snum")
     jh.sort_by("cplx")
     jh.sort_by("lnum")
-    jh.all_ave()
+    jh.getFlatAve()
 
 """
 取得したデータは配列内dict形式。内訳は以下

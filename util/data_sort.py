@@ -5,14 +5,19 @@ import sys
 import numpy
 from matplotlib import pyplot
 from matplotlib.font_manager import FontProperties
-fp = FontProperties(fname = "/usr/share/fonts/truetype/fonts-japanese-gothic.ttf")
+fp = FontProperties(
+    fname="/usr/share/fonts/truetype/fonts-japanese-gothic.ttf")
 
 
 class JsonHelper:
-    def __init__(self, file_name):
-        self.file_name = file_name
-        with open(file_name) as f:
-            self.dics = json.load(f)
+    def __init__(self, *args):
+        # self.file_name = file_name
+        self.dics = []
+        for files in args:
+            for file in files:
+                print("imported file: " + str(file))
+                with open(str(file)) as f:
+                    self.dics.extend(json.load(f))
 
     # ソート要素、条件毎に処理時間の平均値を算出
     # ex) sort_by("turn", snum=100)
@@ -79,11 +84,11 @@ class JsonHelper:
 
 if __name__ == '__main__':
     args = sys.argv
-    if (len(args) != 2):
-        print 'usage: *.py file_name'
+    if (len(args) == 1):
+        print 'usage: *.py file1 (file2 file3...)'
         quit()
-    jh = JsonHelper(str(args[1]))
-    jh.sort_by("turn", snum=100)
+    jh = JsonHelper(args[1:len(args)])
+    jh.sort_by("turn")
     jh.sort_by("snum")
     jh.sort_by("cplx")
     jh.sort_by("lnum")

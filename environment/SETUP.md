@@ -25,6 +25,8 @@ bundle install --binstubs
 ```
 これでもダメな場合、上記の手順を再度実行し最後の``` bundle install --binstubs ```を実行する前にtrema/topologyにて``` bundle install --binstubs ```を実行すると上手く行ったケースがあったので試してみてください。
 
+参考までに``` bundle install --binstubs ```が成功している環境での```gem list```の実行結果をgemlist-2.3.7に出力してあります。
+
 ### 最後に
 .ruby-versionにより、本プロジェクトのディレクトリに移動した時点でRubyのバージョンが指定のものに切り替わるので、注意されたし。  
 当方はgem関連の知識が浅いです。誰かおしえてください。

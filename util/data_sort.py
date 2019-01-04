@@ -37,15 +37,17 @@ class JsonHelper:
             if (d[sortkey] not in result):
                 result[d[sortkey]] = []
             result[d[sortkey]].append(d["time"])
-        self.__ave(result, sortkey)
+        self.__ave(result, sortkey, kwargs.get("close"))
 
     def __exactMatch(self, target, pattern):
         for k, v in pattern.items():
+            if (k == "close"):
+                continue
             if not (target[str(k)] == int(v)):
                 return False
         return True
 
-    def __ave(self, dic, sortby="all"):
+    def __ave(self, dic, sortby, close=None):
         xval = []
         yval = []
         for k, v in sorted(dic.items(), key=lambda x: x[0]):
@@ -59,8 +61,15 @@ class JsonHelper:
         # pyplot.xticks(
         # [1.25, 2.25], [u'目盛りは', 'fontproperties=fp'], fontproperties=fp)
         # pyplot.title(u'タイトルはfontproperties=fp', fontproperties=fp)
-        pyplot.show()
-        # pyplot.savefig("tmp.png")
+        # pyplot.show()
+        if close is not None:
+            pyplot.savefig("tmp/" + str(sortby) + ".png")
+            pyplot.close()
+        else:
+            pyplot.savefig("tmp/" + str(sortby) + "_each" + ".png")
+        # if not (save == None):
+        #     print(save)
+        #     pyplot.savefig(save)
 
     def __getLabel(self, key):
         labels = {
@@ -88,11 +97,18 @@ if __name__ == '__main__':
         print 'usage: *.py file1 (file2 file3...)'
         quit()
     jh = JsonHelper(args[1:len(args)])
-    jh.sort_by("turn")
-    jh.sort_by("snum")
-    jh.sort_by("cplx")
-    jh.sort_by("lnum")
+    jh.sort_by("turn", close=True)
+    jh.sort_by("snum", close=True)
+    jh.sort_by("cplx", close=True)
+    jh.sort_by("lnum", close=True)
     jh.getFlatAve()
+    for val in range(1, 6):
+        snum = 100
+        jh.sort_by("turn", snum=snum, cplx=val)
+    pyplot.close()
+    for val in range(1, 6):
+        snum = 100
+        jh.sort_by("cplx", snum=snum, turn=val)
 
 """
 取得したデータは配列内dict形式。内訳は以下

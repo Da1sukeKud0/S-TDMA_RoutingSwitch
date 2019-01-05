@@ -167,6 +167,7 @@ end
 
 ## BAモデルでの各種パラメータを自動設定し実行
 def test_BA_loop(snum_min = 10, snum_max = 100, snum_interval = 5, cplx_min = 1, cplx_max = 5, loops = 10)
+  rputs "snum_min: #{snum_min}, snum_max: #{snum_max}, snum_interval: #{snum_interval}, cplx_min: #{cplx_min}, cplx_max: #{cplx_max}, loops: #{loops}"
   output = []
   snum = snum_min
   while (snum <= snum_max)
@@ -217,12 +218,15 @@ if __FILE__ == $0
   case ARGV[0]
   when "baloop"
     rputs "test_BA_loop is called."
-    test_BA_loop
+    test_BA_loop(*ARGV[1..7].map(&:to_i))
   when "lineprof"
     rputs "test_lineprof is called."
     rputs "※このモードでの実行時間はlineprofにより大幅に伸びます"
     test_lineprof
   when "bamax"
+    rputs "test_BA_max is called."
+    test_BA_max
+  else
     rputs "test_BA_max is called."
     test_BA_max
   end

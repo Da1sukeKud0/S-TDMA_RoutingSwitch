@@ -64,7 +64,7 @@ class JsonHelper:
                     return False
         return True
 
-    def __ave(self, dic, each, close=True, color="blue"):
+    def __ave(self, dic, each, close=True, color="C{}".format(0)):
         xval = []
         yval = []
         for k, v in sorted(dic.items(), key=lambda x: x[0]):
@@ -117,17 +117,6 @@ if __name__ == '__main__':
     jh.sort_by("lnum")
     jh.getFlatAve()
     jh.sort_by("lnum", subeach="turn", exact={"snum": 100})
-    # for val in range(1, 6):
-    #     snum = 100
-    #     jh.sort_by("turn", snum=snum, cplx=val)
-    # pyplot.close()
-    # for val in range(1, 6):
-    #     snum = 100
-    #     jh.sort_by("cplx", snum=snum, turn=val)
-    # pyplot.close()
-    # for val in range(1, 6):
-    #     snum = 100
-    #     jh.sort_by("lnum", snum=snum, turn=val)
 
 """
 取得したデータは配列内dict形式。内訳は以下

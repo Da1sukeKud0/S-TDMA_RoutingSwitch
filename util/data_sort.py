@@ -99,6 +99,8 @@ class JsonHelper:
         result = {}
         result["all"] = []
         for d in self.dics:
+            if (d["snum"] > 100):
+                continue
             result["all"].append(d["time"])
         print("")
         print("all average: " + str(sum(result["all"])/len(result["all"])))
@@ -115,8 +117,8 @@ if __name__ == '__main__':
     jh.sort_by("snum")
     jh.sort_by("cplx")
     jh.sort_by("lnum")
-    jh.getFlatAve()
     jh.sort_by("lnum", subeach="turn", exact={"snum": 100})
+    jh.getFlatAve()
 
 """
 取得したデータは配列内dict形式。内訳は以下

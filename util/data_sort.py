@@ -19,35 +19,52 @@ class JsonHelper:
                 with open(str(file)) as f:
                     self.dics.extend(json.load(f))
 
-    # ソート要素、条件毎に処理時間の平均値を算出
-    # ex) sort_by("turn", snum=100)
-    def sort_by(self, sortkey, **kwargs):
+    # x軸要素,完全一致条件,凡例を指定して処理時間の平均値を算出
+    # ex) jh.sort_by("lnum", subeach="turn", exact={"snum": 100})
+    def sort_by(self, each, subeach=None, **exact):
         print("")
-        print("each: " + sortkey)
-        print("ExactMatch:" + str(kwargs))
+        print("each: " + each)
+        print("ExactMatch:" + str(exact))
+        print("subeach:" + str(subeach))
         result = {}
         for d in self.dics:
             # falseの結果は除外
             if not (d["tf"]):
                 continue
             # ExactMatch
-            if not self.__exactMatch(d, kwargs):
+            if not self.__exactMatch(d, exact):
                 continue
             # resultに処理時間を格納
-            if (d[sortkey] not in result):
-                result[d[sortkey]] = []
-            result[d[sortkey]].append(d["time"])
-        self.__ave(result, sortkey, kwargs.get("close"))
+            if (subeach is None):
+                if (d[each] not in result.keys()):
+                    result[d[each]] = []
+                result[d[each]].append(d["time"])
+            else:
+                if (d[subeach] not in result.keys()):
+                    result[d[subeach]] = {}
+                if (d[each] not in result[d[subeach]].keys()):
+                    result[d[subeach]][d[each]] = []
+                result[d[subeach]][d[each]].append(d["time"])
+        if (subeach is None):
+            self.__ave(result, each)
+        else:
+            ctr = 0
+            for key, val in result.items():
+                for k, v in val.items():
+                    self.__ave(val, each, close=False, color="C{}".format(ctr))
+                ctr += 1
+            pyplot.close()
 
     def __exactMatch(self, target, pattern):
-        for k, v in pattern.items():
-            if (k == "close"):
-                continue
-            if not (target[str(k)] == int(v)):
-                return False
+        if pattern is None:
+            return True
+        for key, val in pattern.items():
+            for k, v in val.items():
+                if not (target[str(k)] == int(v)):
+                    return False
         return True
 
-    def __ave(self, dic, sortby, close=None):
+    def __ave(self, dic, each, close=True, color="blue"):
         xval = []
         yval = []
         for k, v in sorted(dic.items(), key=lambda x: x[0]):
@@ -55,21 +72,18 @@ class JsonHelper:
             print("key: " + str(k) + ", ave: " + str(ave))
             xval.append(k)
             yval.append(ave)
-        pyplot.plot(xval, yval, "o")
+        pyplot.plot(xval, yval, "o", color=color)
         pyplot.ylabel(u'スケジューリング処理に要した時間 [s]', fontproperties=fp)
-        pyplot.xlabel(self.__getLabel(sortby), fontproperties=fp)
+        pyplot.xlabel(self.__getLabel(each), fontproperties=fp)
         # pyplot.xticks(
         # [1.25, 2.25], [u'目盛りは', 'fontproperties=fp'], fontproperties=fp)
         # pyplot.title(u'タイトルはfontproperties=fp', fontproperties=fp)
         # pyplot.show()
-        if close is not None:
-            pyplot.savefig("tmp/" + str(sortby) + ".png")
+        if close:
+            pyplot.savefig("tmp/" + str(each) + ".png")
             pyplot.close()
         else:
-            pyplot.savefig("tmp/" + str(sortby) + "_each" + ".png")
-        # if not (save == None):
-        #     print(save)
-        #     pyplot.savefig(save)
+            pyplot.savefig("tmp/" + str(each) + "_subeach" + ".png")
 
     def __getLabel(self, key):
         labels = {
@@ -97,28 +111,34 @@ if __name__ == '__main__':
         print 'usage: *.py file1 (file2 file3...)'
         quit()
     jh = JsonHelper(args[1:len(args)])
-    jh.sort_by("turn", close=True)
-    jh.sort_by("snum", close=True)
-    jh.sort_by("cplx", close=True)
-    jh.sort_by("lnum", close=True)
+    jh.sort_by("turn")
+    jh.sort_by("snum")
+    jh.sort_by("cplx")
+    jh.sort_by("lnum")
     jh.getFlatAve()
-    for val in range(1, 6):
-        snum = 100
-        jh.sort_by("turn", snum=snum, cplx=val)
-    pyplot.close()
-    for val in range(1, 6):
-        snum = 100
-        jh.sort_by("cplx", snum=snum, turn=val)
+    jh.sort_by("lnum", subeach="turn", exact={"snum": 100})
+    # for val in range(1, 6):
+    #     snum = 100
+    #     jh.sort_by("turn", snum=snum, cplx=val)
+    # pyplot.close()
+    # for val in range(1, 6):
+    #     snum = 100
+    #     jh.sort_by("cplx", snum=snum, turn=val)
+    # pyplot.close()
+    # for val in range(1, 6):
+    #     snum = 100
+    #     jh.sort_by("lnum", snum=snum, turn=val)
 
 """
 取得したデータは配列内dict形式。内訳は以下
-## 結果出力に用いる各種情報
+# 結果出力に用いる各種情報
 def save_tag
     @tagList = Hash.new ## データのタグリスト(rtcの実行順(turn)を除く)
     @tagList.store("type", @type) ## トポロジタイプ
     @tagList.store("snum", @numOfSwitch) ## スイッチ数
     @tagList.store("rnum", @numOfReq) ## RTC要求数
-    @tagList.store("lnum", @edges.size) ## リンク数(switchNum-complexity)*complexityで算出可能
+    # リンク数(switchNum-complexity)*complexityで算出可能
+    @tagList.store("lnum", @edges.size)
     if (@type == "BA")
         @tagList.store("cplx", @complexity) ## 複雑度
     elsif (@type == "tree")
@@ -126,7 +146,7 @@ def save_tag
         @tagList.store("fan", @fanout)
     end
 end
-## 計測結果をresultに格納
+# 計測結果をresultに格納
     r = @tagList.clone
     r.store("turn", n) ## RTC実行順
     r.store("time", time) ## 処理時間

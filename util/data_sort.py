@@ -117,7 +117,9 @@ if __name__ == '__main__':
     jh.sort_by("snum")
     jh.sort_by("cplx")
     jh.sort_by("lnum")
-    jh.sort_by("lnum", subeach="turn", exact={"snum": 100})
+    # jh.sort_by("lnum", subeach="turn", exact={"snum": 100})
+    # jh.sort_by("turn", subeach=None, exact={"snum": 100, "cplx": 2})
+    # jh.sort_by("snum", subeach=None, exact={"cplx": 2})
     jh.getFlatAve()
 
 """

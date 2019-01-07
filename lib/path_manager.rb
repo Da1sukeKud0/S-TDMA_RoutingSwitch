@@ -54,9 +54,6 @@ class PathManager < Trema::Controller
     shortest_path = @graph.dijkstra(src_mac, dst_mac)
   end
 
-  def delete_used_link(path)
-  end
-
   private
 
   def maybe_create_shortest_path(packet_in)

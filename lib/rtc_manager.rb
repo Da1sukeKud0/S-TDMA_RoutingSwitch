@@ -118,7 +118,6 @@ class RTCManager #< Trema::Controller
       add_period(rtc.period) ## period_listの更新
       ## @timeslot_tableに対しroute_listに従ってrtcを追加
       route_list.each do |key, array|
-        ## TODO: 同じ経路でもpathが生成されてしまう・・・？
         Path.create(array, @message, rtc)  ## for test
         tmp_rtc = rtc.clone
         tmp_rtc.setSchedule(initial_phase, array)
@@ -141,8 +140,7 @@ class RTCManager #< Trema::Controller
       # end
     else
       yputs "packet_in is called (exclusive)"
-      ## TODO: Packet_inで実時間通信要求を受け付ける場合の処理をここに記述
-      ## 現時点では何もしない
+      ## TODO: Packet_inで実時間通信要求を受け付ける場合の処理（現時点では何もしない）
       # @path_manager.packet_in(_dpid, message, mode)
     end
     # for test (1to5and4to5_test.conf)
@@ -164,13 +162,14 @@ class RTCManager #< Trema::Controller
   end
 
   ## for test (RTCManagerTest)
-  def hop_diff
-    result = {}
-    r.store("shortest", shortest)
-    r.store("real", real)
-    r.store("diff", diff)
-    return result
-  end
+  # def hop_diff
+  #   result = {}
+
+  #   r.store("shortest", shortest)
+  #   r.store("real", real)
+  #   r.store("diff", diff)
+  #   return result
+  # end
 
   def add_port(port, _topology)
     @path_manager.add_port(port, _topology)

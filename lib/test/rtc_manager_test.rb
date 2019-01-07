@@ -90,7 +90,7 @@ class RTCManagerTest
   end
 
   ## 指定回数分のスケジューリング探索
-  def run_testcase(srcList = @srcList, dstList = @dstList, periodList = @periodList)
+  def run_testcase(srcList = @srcList.clone, dstList = @dstList.clone, periodList = @periodList.clone)
     result = [] ## @numOfReq回分の探索結果を格納 [r, r, ... , r]
     for n in Range.new(1, srcList.size)
       src = srcList.pop
@@ -107,6 +107,28 @@ class RTCManagerTest
       r.store("turn", n) ## RTC実行順
       r.store("time", time) ## 処理時間
       r.store("tf", tf) ## add_rtc?
+      result.push(r)
+    end
+    return result
+  end
+
+  def run_hoptest(srcList = @srcList.clone, dstList = @dstList.clone, periodList = @periodList.clone)
+    result = [] ## @numOfReq回分の探索結果を格納 [r, r, ... , r]
+    for n in Range.new(1, srcList.size)
+      src = srcList.pop
+      dst = dstList.pop
+      period = periodList.pop
+      puts ""
+      puts "hopstest(src: h#{src}, dst: h#{dst}, period: #{period})"
+      # ホップ数の比較
+      hop_diff = @rtc_manager.hop_diff(src, dst, period)
+      ## 計測結果をresultに格納
+      r = @tagList.clone
+      r.store("turn", n) ## RTC実行順
+      r.store("tf", tf) ## add_rtc?
+      r.store("shop", hop_diff["shortest"])
+      r.store("rhop", hop_diff["real"])
+      r.store("dhop", hop_diff["diff"])
       result.push(r)
     end
     return result
@@ -210,6 +232,7 @@ def test_BA_max
   rtcm.make_ba_topology(snum, cplx)
   rtcm.make_testcase(5)
   puts rtcm.run_testcase
+  rtcm.save_testcase
 end
 
 if __FILE__ == $0

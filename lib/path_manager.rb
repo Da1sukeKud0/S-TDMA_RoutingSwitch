@@ -42,7 +42,7 @@ class PathManager < Trema::Controller
   def delete_link(port_a, port_b, _topology)
     @graph.delete_link(port_a, port_b)
     Path.find { |each| each.link?(port_a, port_b) }.each(&:destroy)
-    ## 上記処理でExclusive Modeのpathオブジェクトも消えてしまう。どうする？
+    ## TODO: 上記処理でExclusive Modeのpathオブジェクトも消えてしまう。どうする？
   end
 
   def add_host(mac_address, port, _topology)

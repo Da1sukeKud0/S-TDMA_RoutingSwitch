@@ -16,11 +16,13 @@ class RTCManager #< Trema::Controller
     yputs "RTC Manager started."
     @counter = 0 ## for test
     @tmp_msg = Hash.new ## for test
-    @hop_diff = {"shortest" => [], "real" => []} ## for test
+    # @hop_diff = {"shortest" => [], "real" => []} ## for hop_diff
   end
 
   ## for hop_diff
-  attr_accessor :hop_diff
+  # attr_reader :hop_diff
+  attr_reader :shortest_hop
+  attr_reader :real_hop
 
   def periodSchedule(message, source_mac, destination_mac, period)
     @message = message
@@ -83,9 +85,11 @@ class RTCManager #< Trema::Controller
       route = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
       if (route)
         ## for hop_diff
-        shortest_hop = route.size / 2 - 1
-        @hop_diff["shortest"].push(shortest_hop)
-        @hop_diff["real"].push(shortest_hop)
+        hop = (route.size / 2 - 1)
+        # @hop_diff["shortest"].push(shortest_hop)
+        # @hop_diff["real"].push(shortest_hop)
+        @shortest_hop = hop.to_f
+        @real_hop = hop.to_f
         ## 使用する各スロットにrtcを格納(経路は全て同じ)
         rtc.setSchedule(initial_phase, route)
         for i in Range.new(0, rtc.period - 1)
@@ -108,7 +112,7 @@ class RTCManager #< Trema::Controller
       shortest_hop = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac).size / 2 - 1
       # rputs "shortest_hop is #{shortest_hop}"
       real_hops = []
-      shortest_hops = []
+      # shortest_hops = []
       @tmp_timeslot_table.each do |timeslot, exist_rtcs|
         print "timeslot #{timeslot}: "
         if ((timeslot - initial_phase) % rtc.period == 0)
@@ -125,7 +129,7 @@ class RTCManager #< Trema::Controller
             real_hop = route.size / 2 - 1
             # rputs "real_hop is #{real_hop}"
             real_hops.push(real_hop)
-            shortest_hops.push(shortest_hop)
+            # shortest_hops.push(shortest_hop)
           else ## 到達可能な経路なし
             puts "到達不可能"
             return false
@@ -134,8 +138,10 @@ class RTCManager #< Trema::Controller
       end
       ## (ここでfalseでない時点で)使用する全てのタイムスロットでルーティングが可能
       ## for hop_diff
-      @hop_diff["shortest"].push(shortest_hops)
-      @hop_diff["real"].push(real_hops)
+      # @hop_diff["shortest"].push(shortest_hops)
+      # @hop_diff["real"].push(real_hops)
+      @shortest_hop = shortest_hop.to_f
+      @real_hop = real_hops.inject(:+).to_f / real_hops.size.to_f
       @timeslot_table = @tmp_timeslot_table.clone ## tmp_timeslot_tableを反映
       add_period(rtc.period) ## period_listの更新
       ## @timeslot_tableに対しroute_listに従ってrtcを追加
@@ -172,16 +178,20 @@ class RTCManager #< Trema::Controller
     if (@counter == 6)
       yputs "Test started."
       puts ""
-      periodSchedule(@tmp_msg[1], @tmp_msg[1].source_mac, @tmp_msg[1].destination_mac, 2)
-      periodSchedule(@tmp_msg[4], @tmp_msg[4].source_mac, @tmp_msg[4].destination_mac, 5)
-      # rputs @hop_diff 
+      scheduling?(@tmp_msg[1].source_mac, @tmp_msg[1].destination_mac, 2, @tmp_msg[1])
+      scheduling?(@tmp_msg[4].source_mac, @tmp_msg[4].destination_mac, 5, @tmp_msg[4])
+      # rputs @hop_diff
     end
   end
 
-  ## for test (RTCManagerTest)
-  def scheduling?(source_mac, destination_mac, period)
+  ## RTCManagerTestもしくはRTCmanager.packet_inからスケジューリング処理を呼び出す際のアクセサ
+  def scheduling?(source_mac, destination_mac, period, message = "packet_in message Class")
     puts ""
-    periodSchedule("packet_in message Class", source_mac, destination_mac, period)
+    ## for hop_diff
+    @shortest_hop = 0
+    @real_hop = 0
+    periodSchedule(message, source_mac, destination_mac, period)
+    rputs("shortest_hop: #{@shortest_hop}, real_hop: #{@real_hop}")
   end
 
   def add_port(port, _topology)

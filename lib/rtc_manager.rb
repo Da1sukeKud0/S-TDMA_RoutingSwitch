@@ -88,7 +88,7 @@ class RTCManager #< Trema::Controller
           end
         end
         add_period(rtc.period)
-        # Path.create(route, @message, "Exclusive") ## for test
+        Path.create(route, @message, rtc) ## for test
       else
         puts "ホスト未登録もしくは到達不可能"
         return false
@@ -118,7 +118,8 @@ class RTCManager #< Trema::Controller
       add_period(rtc.period) ## period_listの更新
       ## @timeslot_tableに対しroute_listに従ってrtcを追加
       route_list.each do |key, array|
-        # Path.create(array, @message, "Exclusive") ## TODO: 同じ経路でもpathが生成されてしまう・・・？ ## for test
+        ## TODO: 同じ経路でもpathが生成されてしまう・・・？
+        Path.create(array, @message, rtc)  ## for test
         tmp_rtc = rtc.clone
         tmp_rtc.setSchedule(initial_phase, array)
         @timeslot_table[key].push(tmp_rtc)
@@ -148,18 +149,27 @@ class RTCManager #< Trema::Controller
     @counter += 1
     @tmp_msg[@counter] = message
     # ## RTCManagerのテストは以下に記述
-    # if (@counter == 6)
-    #   yputs "Test started."
-    #   puts ""
-    #   periodSchedule(@tmp_msg[1], @tmp_msg[1].source_mac, @tmp_msg[1].destination_mac, 2)
-    #   periodSchedule(@tmp_msg[4], @tmp_msg[4].source_mac, @tmp_msg[4].destination_mac, 5)
-    # end
+    if (@counter == 6)
+      yputs "Test started."
+      puts ""
+      periodSchedule(@tmp_msg[1], @tmp_msg[1].source_mac, @tmp_msg[1].destination_mac, 2)
+      periodSchedule(@tmp_msg[4], @tmp_msg[4].source_mac, @tmp_msg[4].destination_mac, 5)
+    end
   end
 
   ## for test (RTCManagerTest)
   def scheduling?(source_mac, destination_mac, period)
     puts ""
     periodSchedule("packet_in message Class", source_mac, destination_mac, period)
+  end
+
+  ## for test (RTCManagerTest)
+  def hop_diff
+    result = {}
+    r.store("shortest", shortest)
+    r.store("real", real)
+    r.store("diff", diff)
+    return result
   end
 
   def add_port(port, _topology)

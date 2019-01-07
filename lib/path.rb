@@ -34,6 +34,7 @@ class Path < Trema::Controller
     else ## flowmodしない
       # logger.info "Creating path (RTC): " + @full_path.map(&:to_s).join(" -> ")
       yputs "Creating path (RTC): " + @full_path.map(&:to_s).join(" -> ")
+      # flow_mod_add_to_each_switch
     end
     self
   end
@@ -46,8 +47,10 @@ class Path < Trema::Controller
       flow_mod_delete_to_each_switch
     else
       rputs "Deleting path (RTC): " + @full_path.map(&:to_s).join(" -> ")
+      ## TODO: Exclusiveのpathが消えた際の動作は???
+      # flow_mod_delete_to_each_switch
+      # RTCManager.periodSchedule("packet_in message Class", mode.source_mac, mode.destination_mac, mode.period)
       Path.destroy self
-      ## Exclusiveのpathが消えた際の動作は???
     end
   end
 

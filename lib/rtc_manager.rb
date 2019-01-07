@@ -179,7 +179,9 @@ class RTCManager #< Trema::Controller
       yputs "Test started."
       puts ""
       scheduling?(@tmp_msg[1].source_mac, @tmp_msg[1].destination_mac, 2, @tmp_msg[1])
+      rputs("shortest_hop: #{@shortest_hop}, real_hop: #{@real_hop}")
       scheduling?(@tmp_msg[4].source_mac, @tmp_msg[4].destination_mac, 5, @tmp_msg[4])
+      rputs("shortest_hop: #{@shortest_hop}, real_hop: #{@real_hop}")
       # rputs @hop_diff
     end
   end
@@ -191,7 +193,6 @@ class RTCManager #< Trema::Controller
     @shortest_hop = 0
     @real_hop = 0
     periodSchedule(message, source_mac, destination_mac, period)
-    rputs("shortest_hop: #{@shortest_hop}, real_hop: #{@real_hop}")
   end
 
   def add_port(port, _topology)

@@ -16,7 +16,11 @@ class RTCManager #< Trema::Controller
     yputs "RTC Manager started."
     @counter = 0 ## for test
     @tmp_msg = Hash.new ## for test
+    @hop_diff = {"shortest" => [], "real" => []} ## for test
   end
+
+  ## for hop_diff
+  attr_accessor :hop_diff
 
   def periodSchedule(message, source_mac, destination_mac, period)
     @message = message
@@ -78,6 +82,10 @@ class RTCManager #< Trema::Controller
     if (@timeslot_table.all? { |key, each| each.size == 0 }) ##既存のrtcがない場合
       route = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
       if (route)
+        ## for hop_diff
+        shortest_hop = route.size / 2 - 1
+        @hop_diff["shortest"].push(shortest_hop)
+        @hop_diff["real"].push(shortest_hop)
         ## 使用する各スロットにrtcを格納(経路は全て同じ)
         rtc.setSchedule(initial_phase, route)
         for i in Range.new(0, rtc.period - 1)
@@ -96,6 +104,11 @@ class RTCManager #< Trema::Controller
     else ## 既存のrtcがある場合
       route_list = Hash.new() ## 一時的な経路情報格納 {timeslot=>route,,,}
       ## timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除してから探索
+      ## for hop_diff
+      shortest_hop = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac).size / 2 - 1
+      # rputs "shortest_hop is #{shortest_hop}"
+      real_hops = []
+      shortest_hops = []
       @tmp_timeslot_table.each do |timeslot, exist_rtcs|
         print "timeslot #{timeslot}: "
         if ((timeslot - initial_phase) % rtc.period == 0)
@@ -106,7 +119,13 @@ class RTCManager #< Trema::Controller
           route = Dijkstra.new(@graph_table[timeslot]).run(rtc.source_mac, rtc.destination_mac)
           if (route)
             puts "到達可能"
-            route_list[timeslot] = route.reject { |each| each.is_a? Integer }
+            route = route.reject { |each| each.is_a? Integer }
+            route_list[timeslot] = route
+            ## for hop_diff
+            real_hop = route.size / 2 - 1
+            # rputs "real_hop is #{real_hop}"
+            real_hops.push(real_hop)
+            shortest_hops.push(shortest_hop)
           else ## 到達可能な経路なし
             puts "到達不可能"
             return false
@@ -114,6 +133,9 @@ class RTCManager #< Trema::Controller
         end
       end
       ## (ここでfalseでない時点で)使用する全てのタイムスロットでルーティングが可能
+      ## for hop_diff
+      @hop_diff["shortest"].push(shortest_hops)
+      @hop_diff["real"].push(real_hops)
       @timeslot_table = @tmp_timeslot_table.clone ## tmp_timeslot_tableを反映
       add_period(rtc.period) ## period_listの更新
       ## @timeslot_tableに対しroute_listに従ってrtcを追加
@@ -152,6 +174,7 @@ class RTCManager #< Trema::Controller
       puts ""
       periodSchedule(@tmp_msg[1], @tmp_msg[1].source_mac, @tmp_msg[1].destination_mac, 2)
       periodSchedule(@tmp_msg[4], @tmp_msg[4].source_mac, @tmp_msg[4].destination_mac, 5)
+      # rputs @hop_diff 
     end
   end
 
@@ -160,16 +183,6 @@ class RTCManager #< Trema::Controller
     puts ""
     periodSchedule("packet_in message Class", source_mac, destination_mac, period)
   end
-
-  ## for test (RTCManagerTest)
-  # def hop_diff
-  #   result = {}
-
-  #   r.store("shortest", shortest)
-  #   r.store("real", real)
-  #   r.store("diff", diff)
-  #   return result
-  # end
 
   def add_port(port, _topology)
     @path_manager.add_port(port, _topology)

@@ -64,9 +64,9 @@ class RTCManagerTest
     l = Array.new(@numOfSwitch) { |index| index + 1 }
     popMax = @numOfSwitch
     @numOfReq.times do
-      @srcList.push(l.delete_at(rand(popMax)))
+      @srcList.push("h" + (l.delete_at(rand(popMax))).to_s)
       popMax -= 1
-      @dstList.push(l.delete_at(rand(popMax)))
+      @dstList.push("h" + (l.delete_at(rand(popMax))).to_s)
       popMax -= 1
       @periodList.push(rand(4) + 2)
     end

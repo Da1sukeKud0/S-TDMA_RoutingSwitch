@@ -86,11 +86,11 @@ class RTCManager #< Trema::Controller
       if (route)
         ## for hop_diff
         rputs route
-        rputs hop = (route.size / 2 + 1) ## RTCManagerTest向け 本来は ~ - 1 ???
+        hop = (route.size / 2 - 1).to_f
         # @hop_diff["shortest"].push(shortest_hop)
         # @hop_diff["real"].push(shortest_hop)
-        @shortest_hop = hop.to_f
-        @real_hop = hop.to_f
+        @shortest_hop = hop
+        @real_hop = hop
         ## 使用する各スロットにrtcを格納(経路は全て同じ)
         rtc.setSchedule(initial_phase, route)
         for i in Range.new(0, rtc.period - 1)
@@ -110,8 +110,7 @@ class RTCManager #< Trema::Controller
       route_list = Hash.new() ## 一時的な経路情報格納 {timeslot=>route,,,}
       ## timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除してから探索
       ## for hop_diff
-      rputs @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
-      shortest_hop = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac).size / 2 + 1 ## RTCManagerTest向け 本来は ~ - 1 ???
+      shortest_hop = (@path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac).size / 2 - 1).to_f
       # rputs "shortest_hop is #{shortest_hop}"
       real_hops = []
       # shortest_hops = []
@@ -128,7 +127,7 @@ class RTCManager #< Trema::Controller
             route = route.reject { |each| each.is_a? Integer }
             route_list[timeslot] = route
             ## for hop_diff
-            real_hop = route.size / 2 + 1 ## RTCManagerTest向け 本来は ~ - 1 ???
+            real_hop = (route.size / 2 - 1).to_f
             # rputs "real_hop is #{real_hop}"
             real_hops.push(real_hop)
             # shortest_hops.push(shortest_hop)
@@ -142,8 +141,8 @@ class RTCManager #< Trema::Controller
       ## for hop_diff
       # @hop_diff["shortest"].push(shortest_hops)
       # @hop_diff["real"].push(real_hops)
-      @shortest_hop = shortest_hop.to_f
-      @real_hop = real_hops.inject(:+).to_f / real_hops.size.to_f
+      @shortest_hop = shortest_hop
+      @real_hop = real_hops.inject(:+).to_f / real_hops.size.to_f ## 平均ホップ数
       @timeslot_table = @tmp_timeslot_table.clone ## tmp_timeslot_tableを反映
       add_period(rtc.period) ## period_listの更新
       ## @timeslot_tableに対しroute_listに従ってrtcを追加

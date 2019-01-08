@@ -1,5 +1,5 @@
 require_relative "../rtc_manager"
-# require_relative "../../vendor/topology/lib/topology"
+require_relative "../../vendor/topology/lib/topology"
 # require "pio"
 require "json"
 require_relative "../cputs"
@@ -9,22 +9,6 @@ class RTCManagerTest
     @rtc_manager = RTCManager.new.tap(&:start)
     @topology = "Topology Class" ##dummy of Topology.new
     @edges = edges ## [[src,dst],[src,dst],,,]
-  end
-
-  Port = Struct.new(:dpid, :port_no) do
-    alias_method :number, :port_no
-
-    def self.create(attrs)
-      new attrs.fetch(:dpid), attrs.fetch(:port_no)
-    end
-
-    def <=>(other)
-      [dpid, number] <=> [other.dpid, other.number]
-    end
-
-    def to_s
-      "#{format "%#x", dpid}:#{number}"
-    end
   end
 
   attr_reader :rtc_manager
@@ -130,13 +114,13 @@ class RTCManagerTest
     ## dpid:1において、dpid:2へのリンクで使用するポートは0x1:2
     ## またホストのMACアドレスは"h1"、ホストへのリンクで使用するポートは0x1:1
     @edges.each do |src, dst|
-      @rtc_manager.add_port(Port.new(src, dst), @topology)
-      @rtc_manager.add_port(Port.new(dst, src), @topology)
-      @rtc_manager.add_link(Port.new(src, dst), Port.new(dst, src), @topology)
+      @rtc_manager.add_port(Topology::Port.new(src, dst), @topology)
+      @rtc_manager.add_port(Topology::Port.new(dst, src), @topology)
+      @rtc_manager.add_link(Topology::Port.new(src, dst), Topology::Port.new(dst, src), @topology)
     end
     for n in Range.new(1, @numOfSwitch)
-      @rtc_manager.add_port(Port.new(n, n), @topology)
-      @rtc_manager.add_host("h" + n.to_s, Port.new(n, n), @topology) ## 本来はPio::Mac.new("11:11:11:11:11:11") だが簡略化
+      @rtc_manager.add_port(Topology::Port.new(n, n), @topology)
+      @rtc_manager.add_host("h" + n.to_s, Topology::Port.new(n, n), @topology) ## 本来はPio::Mac.new("11:11:11:11:11:11") だが簡略化
     end
   end
 

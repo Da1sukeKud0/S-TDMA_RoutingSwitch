@@ -158,10 +158,12 @@ if __name__ == '__main__':
     jh.sort_by("hop", "turn", None, snum=100, cplx=2)
     jh.sort_by("hop", "snum")
     jh.sort_by("hop", "snum", None, cplx=2)
-    jh.sort_by("hop", "lnum")
+    #jh.sort_by("hop", "lnum")
     jh.sort_by("hop", "lnum", "turn", snum=100)
     jh.sort_by("hop", "cplx")
 
+    jh.sort_by("hop", "snum", "turn", cplx=2) #oresen
+    jh.sort_by("hop", "cplx", None, snum=100)
     jh.getFlatAve()
 
 """

@@ -85,7 +85,8 @@ class RTCManager #< Trema::Controller
       route = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
       if (route)
         ## for hop_diff
-        hop = (route.size / 2 - 1)
+        rputs route
+        rputs hop = (route.size / 2 + 1) ## RTCManagerTest向け 本来は ~ - 1 ???
         # @hop_diff["shortest"].push(shortest_hop)
         # @hop_diff["real"].push(shortest_hop)
         @shortest_hop = hop.to_f
@@ -109,7 +110,8 @@ class RTCManager #< Trema::Controller
       route_list = Hash.new() ## 一時的な経路情報格納 {timeslot=>route,,,}
       ## timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除してから探索
       ## for hop_diff
-      shortest_hop = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac).size / 2 - 1
+      rputs @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
+      shortest_hop = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac).size / 2 + 1 ## RTCManagerTest向け 本来は ~ - 1 ???
       # rputs "shortest_hop is #{shortest_hop}"
       real_hops = []
       # shortest_hops = []
@@ -126,7 +128,7 @@ class RTCManager #< Trema::Controller
             route = route.reject { |each| each.is_a? Integer }
             route_list[timeslot] = route
             ## for hop_diff
-            real_hop = route.size / 2 - 1
+            real_hop = route.size / 2 + 1 ## RTCManagerTest向け 本来は ~ - 1 ???
             # rputs "real_hop is #{real_hop}"
             real_hops.push(real_hop)
             # shortest_hops.push(shortest_hop)

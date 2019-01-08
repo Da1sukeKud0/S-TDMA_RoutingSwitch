@@ -3,21 +3,33 @@
 import json
 import sys
 import numpy
+import matplotlib
 from matplotlib import pyplot
 from matplotlib.font_manager import FontProperties
 fp = FontProperties(
     fname="/usr/share/fonts/truetype/fonts-japanese-gothic.ttf")
+# PDFの場合は以下の
+# matplotlib.rcParams['font.family'] = fp.get_name()
+# matplotlib.rcParams['pdf.fonttype'] = 42
 
 
 class JsonHelper:
-    def __init__(self, *args):
+    def __init__(self, args):
         # self.file_name = file_name
         self.dics = []
-        for files in args:
-            for file in files:
-                print("imported file: " + str(file))
-                with open(str(file)) as f:
-                    self.dics.extend(json.load(f))
+        if args[0] == "pdf":
+            self.mode = "pdf"
+            matplotlib.rcParams['font.family'] = fp.get_name()
+            matplotlib.rcParams['pdf.fonttype'] = 42
+        elif args[0] == "png":
+            self.mode = "png"
+        else:
+            print 'usage: output_mode(pdf or png or show) *.py file1 (file2 file3...)'
+            quit()
+        for file in args[1:]:
+            print("imported file: " + str(file))
+            with open(str(file)) as f:
+                self.dics.extend(json.load(f))
 
     # x軸要素,完全一致条件,凡例を指定して処理時間の平均値を算出
     # ex) jh.sort_by("lnum", subeach="turn", exact={"snum": 100})
@@ -77,7 +89,7 @@ class JsonHelper:
         yval = []
         for k, v in sorted(dic.items(), key=lambda x: x[0]):
             ave = sum(v)/len(v)
-            print("key: " + str(k) + ", ave: " + str(ave))
+            # print("key: " + str(k) + ", ave: " + str(ave))
             xval.append(k)
             yval.append(ave)
         pyplot.plot(xval, yval, "o", color=color)
@@ -88,12 +100,22 @@ class JsonHelper:
         # pyplot.title(u'タイトルはfontproperties=fp', fontproperties=fp)
         # pyplot.show()
         if close:
-            pyplot.savefig("tmp/" + str(self.target) +
-                           "__" + str(self.each) + "_" + str(self.exact) + ".png")
+            pyplot.savefig("tmp/" + str(self.target) + "__" +
+                           str(self.each) + self.__exact_to_s() + "." + self.mode)
             pyplot.close()
         else:
             pyplot.savefig("tmp/" + str(self.target) + "__" + str(self.each) +
-                           "_" + str(self.subeach) + "_" + str(self.exact) + ".png")
+                           "_" + str(self.subeach) + self.__exact_to_s() + "." + self.mode)
+
+    def __exact_to_s(self):
+        if len(self.exact) == 0:
+            s = ""
+        else:
+            s = "("
+            for k, v in self.exact.items():
+                s += str(k) + str(v)
+            s += ")"
+        return s
 
     def __getLabel(self, each):
         labels = {
@@ -119,21 +141,27 @@ class JsonHelper:
 
 if __name__ == '__main__':
     args = sys.argv
-    if (len(args) == 1):
-        print 'usage: *.py file1 (file2 file3...)'
+    print(len(args))
+    if (len(args) < 3):
+        print 'usage: output_mode(pdf or png or show) *.py file1 (file2 file3...)'
         quit()
-    jh = JsonHelper(args[1:len(args)])
+    jh = JsonHelper(args[1:])
     jh.sort_by("time", "turn")
-    jh.sort_by("time", "snum")
-    jh.sort_by("time", "cplx")
-    jh.sort_by("time", "lnum")
-    jh.sort_by("hop", "turn")
-    jh.sort_by("hop", "snum")
-    jh.sort_by("hop", "cplx")
-    jh.sort_by("hop", "lnum")
-    jh.sort_by("time", "lnum", "turn", snum=100)
     jh.sort_by("time", "turn", None, snum=100, cplx=2)
+    jh.sort_by("time", "snum")
     jh.sort_by("time", "snum", None, cplx=2)
+    jh.sort_by("time", "lnum")
+    jh.sort_by("time", "lnum", "turn", snum=100)
+    jh.sort_by("time", "cplx")
+
+    jh.sort_by("hop", "turn")
+    jh.sort_by("hop", "turn", None, snum=100, cplx=2)
+    jh.sort_by("hop", "snum")
+    jh.sort_by("hop", "snum", None, cplx=2)
+    jh.sort_by("hop", "lnum")
+    jh.sort_by("hop", "lnum", "turn", snum=100)
+    jh.sort_by("hop", "cplx")
+
     jh.getFlatAve()
 
 """

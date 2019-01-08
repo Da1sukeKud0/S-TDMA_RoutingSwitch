@@ -91,10 +91,10 @@ class RTCManagerTest
       r.store("turn", n) ## RTC実行順
       r.store("time", time) ## 処理時間
       r.store("tf", tf) ## add_rtc?
-      r.store("shop", @rtc_manager.shortest_hop) ## 単純最短経路のホップ数
-      r.store("rhop", @rtc_manager.real_hop) ## 実際に設定された経路のホップ数
-      r.store("shops", @rtc_manager.shortest_hops) ## 単純最短経路のホップ数
-      r.store("rhops", @rtc_manager.real_hops) ## 実際に設定された経路のホップ数
+      r.store("shop", @rtc_manager.shortest_hop) ## 単純最短経路の平均ホップ数
+      r.store("rhop", @rtc_manager.real_hop) ## 実際に設定された経路の平均ホップ数
+      r.store("shops", @rtc_manager.shortest_hops) ## 単純最短経路の累計ホップ数
+      r.store("rhops", @rtc_manager.real_hops) ## 実際に設定された経路の累計ホップ数
       result.push(r)
     end
     return result

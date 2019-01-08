@@ -21,6 +21,8 @@ class RTCManager #< Trema::Controller
   ## for hop_diff
   attr_reader :shortest_hop
   attr_reader :real_hop
+  attr_reader :shortest_hops
+  attr_reader :real_hops
 
   def periodSchedule(message, source_mac, destination_mac, period)
     @message = message
@@ -84,6 +86,8 @@ class RTCManager #< Trema::Controller
       if (route)
         ## for hop_diff
         hop = (route.size / 2 - 1).to_f
+        @shortest_hops = hop
+        @real_hops = hop
         @shortest_hop = hop
         @real_hop = hop
         ## 使用する各スロットにrtcを格納(経路は全て同じ)
@@ -107,7 +111,7 @@ class RTCManager #< Trema::Controller
       ## for hop_diff
       shortest_hop = (@path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac).size / 2 - 1).to_f
       real_hops = []
-      # shortest_hops = []
+      shortest_hops = []
       @tmp_timeslot_table.each do |timeslot, exist_rtcs|
         print "timeslot #{timeslot}: "
         if ((timeslot - initial_phase) % rtc.period == 0)
@@ -123,7 +127,7 @@ class RTCManager #< Trema::Controller
             ## for hop_diff
             real_hop = (route.size / 2 - 1).to_f
             real_hops.push(real_hop)
-            # shortest_hops.push(shortest_hop)
+            shortest_hops.push(shortest_hop)
           else ## 到達可能な経路なし
             puts "到達不可能"
             return false
@@ -132,6 +136,8 @@ class RTCManager #< Trema::Controller
       end
       ## (ここでfalseでない時点で)使用する全てのタイムスロットでルーティングが可能
       ## for hop_diff
+      @shortest_hops = shortest_hops
+      @real_hops = real_hops
       @shortest_hop = shortest_hop
       @real_hop = real_hops.inject(:+).to_f / real_hops.size.to_f ## 平均ホップ数
       @timeslot_table = @tmp_timeslot_table.clone ## tmp_timeslot_tableを反映
@@ -182,6 +188,8 @@ class RTCManager #< Trema::Controller
   def scheduling?(source_mac, destination_mac, period, message = "packet_in message Class")
     puts ""
     ## for hop_diff
+    @shortest_hops = []
+    @real_hops = []
     @shortest_hop = 0
     @real_hop = 0
     periodSchedule(message, source_mac, destination_mac, period)

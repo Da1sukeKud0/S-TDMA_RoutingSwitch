@@ -81,7 +81,7 @@ class RTCManagerTest
       dst = dstList.pop
       period = periodList.pop
       puts ""
-      puts "schedulable?(src: h#{src}, dst: h#{dst}, period: #{period})"
+      puts "schedulable?(src: #{src}, dst: #{dst}, period: #{period})"
       # 以下でスケジューリング処理の時間を計測
       st = Time.now
       tf = @rtc_manager.scheduling?(src, dst, period)
@@ -93,6 +93,8 @@ class RTCManagerTest
       r.store("tf", tf) ## add_rtc?
       r.store("shop", @rtc_manager.shortest_hop) ## 単純最短経路のホップ数
       r.store("rhop", @rtc_manager.real_hop) ## 実際に設定された経路のホップ数
+      r.store("shops", @rtc_manager.shortest_hops) ## 単純最短経路のホップ数
+      r.store("rhops", @rtc_manager.real_hops) ## 実際に設定された経路のホップ数
       result.push(r)
     end
     return result

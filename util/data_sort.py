@@ -21,31 +21,36 @@ class JsonHelper:
 
     # x軸要素,完全一致条件,凡例を指定して処理時間の平均値を算出
     # ex) jh.sort_by("lnum", subeach="turn", exact={"snum": 100})
-    def sort_by(self, each, subeach=None, **exact):
+    def sort_by(self, target, each, subeach=None, **exact):
+        self.target = target
+        self.each = each
+        self.subeach = subeach
+        self.exact = exact
         print("")
+        print("target: " + target)
         print("each: " + each)
         print("ExactMatch:" + str(exact))
         print("subeach:" + str(subeach))
         result = {}
         for d in self.dics:
             # falseの結果は除外
-            if not (d["tf"]):
+            if not d["tf"]:
                 continue
             # ExactMatch
-            if not self.__exactMatch(d, exact):
+            if not self.__exactMatch(d):
                 continue
             # resultに処理時間を格納
-            if (subeach is None):
-                if (d[each] not in result.keys()):
+            if subeach is None:
+                if d[each] not in result.keys():
                     result[d[each]] = []
-                result[d[each]].append(d["time"])
+                result[d[each]].append(self.__getValue(target, d))
             else:
-                if (d[subeach] not in result.keys()):
+                if d[subeach] not in result.keys():
                     result[d[subeach]] = {}
-                if (d[each] not in result[d[subeach]].keys()):
+                if d[each] not in result[d[subeach]].keys():
                     result[d[subeach]][d[each]] = []
-                result[d[subeach]][d[each]].append(d["time"])
-        if (subeach is None):
+                result[d[subeach]][d[each]].append(self.__getValue(target, d))
+        if subeach is None:
             self.__ave(result, each)
         else:
             ctr = 0
@@ -55,13 +60,16 @@ class JsonHelper:
                 ctr += 1
             pyplot.close()
 
-    def __exactMatch(self, target, pattern):
-        if pattern is None:
-            return True
-        for key, val in pattern.items():
-            for k, v in val.items():
-                if not (target[str(k)] == int(v)):
-                    return False
+    def __getValue(self, target, d):
+        if target == "time":
+            return d["time"]
+        elif target == "hop":
+            return d["rhop"] - d["shop"]
+
+    def __exactMatch(self, target):
+        for key, val in self.exact.items():
+            if not (target[str(key)] == int(val)):
+                return False
         return True
 
     def __ave(self, dic, each, close=True, color="C{}".format(0)):
@@ -80,12 +88,14 @@ class JsonHelper:
         # pyplot.title(u'タイトルはfontproperties=fp', fontproperties=fp)
         # pyplot.show()
         if close:
-            pyplot.savefig("tmp/" + str(each) + ".png")
+            pyplot.savefig("tmp/" + str(self.target) +
+                           "__" + str(self.each) + "_" + str(self.exact) + ".png")
             pyplot.close()
         else:
-            pyplot.savefig("tmp/" + str(each) + "_subeach" + ".png")
+            pyplot.savefig("tmp/" + str(self.target) + "__" + str(self.each) +
+                           "_" + str(self.subeach) + "_" + str(self.exact) + ".png")
 
-    def __getLabel(self, key):
+    def __getLabel(self, each):
         labels = {
             "snum": u"ネットワーク内に存在するOpenFlowスイッチの数",
             "rnum": u"システムに入力された実時間要求の数",
@@ -93,7 +103,7 @@ class JsonHelper:
             "turn": u"システムへの実時間通信要求の入力順",
             "cplx": u"BAモデルに基づくスケールフリーネットワークの混雑度"
         }
-        return labels.get(key, "unknown")
+        return labels.get(each, "unknown")
 
     def getFlatAve(self):
         result = {}
@@ -113,13 +123,17 @@ if __name__ == '__main__':
         print 'usage: *.py file1 (file2 file3...)'
         quit()
     jh = JsonHelper(args[1:len(args)])
-    jh.sort_by("turn")
-    jh.sort_by("snum")
-    jh.sort_by("cplx")
-    jh.sort_by("lnum")
-    # jh.sort_by("lnum", subeach="turn", exact={"snum": 100})
-    # jh.sort_by("turn", subeach=None, exact={"snum": 100, "cplx": 2})
-    # jh.sort_by("snum", subeach=None, exact={"cplx": 2})
+    jh.sort_by("time", "turn")
+    jh.sort_by("time", "snum")
+    jh.sort_by("time", "cplx")
+    jh.sort_by("time", "lnum")
+    jh.sort_by("hop", "turn")
+    jh.sort_by("hop", "snum")
+    jh.sort_by("hop", "cplx")
+    jh.sort_by("hop", "lnum")
+    jh.sort_by("time", "lnum", "turn", snum=100)
+    jh.sort_by("time", "turn", None, snum=100, cplx=2)
+    jh.sort_by("time", "snum", None, cplx=2)
     jh.getFlatAve()
 
 """

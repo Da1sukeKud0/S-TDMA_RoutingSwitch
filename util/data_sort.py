@@ -8,14 +8,10 @@ from matplotlib import pyplot
 from matplotlib.font_manager import FontProperties
 fp = FontProperties(
     fname="/usr/share/fonts/truetype/fonts-japanese-gothic.ttf")
-# PDFの場合は以下の
-# matplotlib.rcParams['font.family'] = fp.get_name()
-# matplotlib.rcParams['pdf.fonttype'] = 42
 
 
 class JsonHelper:
     def __init__(self, args):
-        # self.file_name = file_name
         self.dics = []
         if args[0] == "pdf":
             self.mode = "pdf"
@@ -92,8 +88,8 @@ class JsonHelper:
             # print("key: " + str(k) + ", ave: " + str(ave))
             xval.append(k)
             yval.append(ave)
-        pyplot.plot(xval, yval, "o", color=color)
-        pyplot.ylabel(u'スケジューリング処理に要した時間 [s]', fontproperties=fp)
+        pyplot.plot(xval, yval, self.plotmode, markersize=4, color=color)
+        pyplot.ylabel(self.__getLabel(self.target), fontproperties=fp)
         pyplot.xlabel(self.__getLabel(each), fontproperties=fp)
         # pyplot.xticks(
         # [1.25, 2.25], [u'目盛りは', 'fontproperties=fp'], fontproperties=fp)
@@ -123,7 +119,9 @@ class JsonHelper:
             "rnum": u"システムに入力された実時間要求の数",
             "lnum": u"ネットワーク内に存在するリンクの数",
             "turn": u"システムへの実時間通信要求の入力順",
-            "cplx": u"BAモデルに基づくスケールフリーネットワークの混雑度"
+            "cplx": u"BAモデルに基づくスケールフリーネットワークの混雑度",
+            "time": u"スケジューリング処理に要した時間 [s]",
+            "hop": u"平均増加ホップ数"
         }
         return labels.get(each, "unknown")
 
@@ -138,6 +136,12 @@ class JsonHelper:
         print("all average: " + str(sum(result["all"])/len(result["all"])))
         print("")
 
+    def oresenplot(self):
+        self.plotmode = ""
+
+    def dotplot(self):
+        self.plotmode = "o"
+
 
 if __name__ == '__main__':
     args = sys.argv
@@ -146,6 +150,8 @@ if __name__ == '__main__':
         print 'usage: output_mode(pdf or png or show) *.py file1 (file2 file3...)'
         quit()
     jh = JsonHelper(args[1:])
+    # dot mode
+    jh.dotplot()
     jh.sort_by("time", "turn")
     jh.sort_by("time", "turn", None, snum=100, cplx=2)
     jh.sort_by("time", "snum")
@@ -158,12 +164,17 @@ if __name__ == '__main__':
     jh.sort_by("hop", "turn", None, snum=100, cplx=2)
     jh.sort_by("hop", "snum")
     jh.sort_by("hop", "snum", None, cplx=2)
-    #jh.sort_by("hop", "lnum")
-    jh.sort_by("hop", "lnum", "turn", snum=100)
+    jh.sort_by("hop", "lnum")
+    # jh.sort_by("hop", "lnum", "turn", snum=100)  # oresen
     jh.sort_by("hop", "cplx")
 
-    jh.sort_by("hop", "snum", "turn", cplx=2) #oresen
+    # jh.sort_by("hop", "snum", "turn", cplx=2)  # oresen
     jh.sort_by("hop", "cplx", None, snum=100)
+
+    # oresen mode
+    jh.oresenplot()
+    jh.sort_by("hop", "lnum", "turn", snum=100)  # oresen
+    jh.sort_by("hop", "snum", "turn", cplx=2)  # oresen
     jh.getFlatAve()
 
 """

@@ -8,20 +8,14 @@ from matplotlib import pyplot
 from matplotlib.font_manager import FontProperties
 fp = FontProperties(
     fname="/usr/share/fonts/truetype/fonts-japanese-gothic.ttf")
+matplotlib.rcParams['font.family'] = fp.get_name()
+matplotlib.rcParams['pdf.fonttype'] = 42
 
 
 class JsonHelper:
     def __init__(self, args):
         self.dics = []
-        if args[0] == "pdf":
-            self.mode = "pdf"
-            matplotlib.rcParams['font.family'] = fp.get_name()
-            matplotlib.rcParams['pdf.fonttype'] = 42
-        elif args[0] == "png":
-            self.mode = "png"
-        else:
-            print 'usage: output_mode(pdf or png or show) *.py file1 (file2 file3...)'
-            quit()
+        self.mode = args[0]
         for file in args[1:]:
             print("imported file: " + str(file))
             with open(str(file)) as f:
@@ -62,9 +56,10 @@ class JsonHelper:
             self.__ave(result, each)
         else:
             ctr = 0
+            plots = []
             for key, val in result.items():
-                for k, v in val.items():
-                    self.__ave(val, each, close=False, color="C{}".format(ctr))
+                plots.append(self.__ave(val, each, False,
+                                        "C{}".format(ctr), key))
                 ctr += 1
             pyplot.close()
 
@@ -80,7 +75,7 @@ class JsonHelper:
                 return False
         return True
 
-    def __ave(self, dic, each, close=True, color="C{}".format(0)):
+    def __ave(self, dic, each, close=True, color="C{}".format(0), label=None):
         xval = []
         yval = []
         for k, v in sorted(dic.items(), key=lambda x: x[0]):
@@ -88,7 +83,11 @@ class JsonHelper:
             # print("key: " + str(k) + ", ave: " + str(ave))
             xval.append(k)
             yval.append(ave)
-        pyplot.plot(xval, yval, self.plotmode, markersize=4, color=color)
+        plot = pyplot.plot(xval, yval, self.plotmode,
+                           markersize=4, color=color, label=label)
+        if self.subeach is not None:
+            pyplot.legend(title=self.__getLabel(
+                self.subeach))
         pyplot.ylabel(self.__getLabel(self.target), fontproperties=fp)
         pyplot.xlabel(self.__getLabel(each), fontproperties=fp)
         # pyplot.xticks(
@@ -97,11 +96,12 @@ class JsonHelper:
         # pyplot.show()
         if close:
             pyplot.savefig("tmp/" + str(self.target) + "__" +
-                           str(self.each) + self.__exact_to_s() + "." + self.mode)
+                           str(self.each) + self.__exact_to_s() + self.filetail + "." + self.mode)
             pyplot.close()
         else:
             pyplot.savefig("tmp/" + str(self.target) + "__" + str(self.each) +
-                           "_" + str(self.subeach) + self.__exact_to_s() + "." + self.mode)
+                           "_" + str(self.subeach) + self.__exact_to_s() + self.filetail + "." + self.mode)
+        return plot
 
     def __exact_to_s(self):
         if len(self.exact) == 0:
@@ -116,12 +116,13 @@ class JsonHelper:
     def __getLabel(self, each):
         labels = {
             "snum": u"ネットワーク内に存在するOpenFlowスイッチの数",
-            "rnum": u"システムに入力された実時間要求の数",
+            "rnum": u"入力された実時間通信要求の数",
             "lnum": u"ネットワーク内に存在するリンクの数",
-            "turn": u"システムへの実時間通信要求の入力順",
-            "cplx": u"BAモデルに基づくスケールフリーネットワークの混雑度",
+            "turn": u"実時間通信要求の入力順",
+            "cplx": u"BAモデルに基づくスケールフリーネットワークの複雑度",
             "time": u"スケジューリング処理に要した時間 [s]",
-            "hop": u"平均増加ホップ数"
+            "hop": u"通信毎の平均増加ホップ数",
+            "hops": u"通信毎の累計増加ホップ数"
         }
         return labels.get(each, "unknown")
 
@@ -138,15 +139,17 @@ class JsonHelper:
 
     def oresenplot(self):
         self.plotmode = ""
+        self.filetail = "_ore"
 
     def dotplot(self):
         self.plotmode = "o"
+        self.filetail = ""
 
 
 if __name__ == '__main__':
     args = sys.argv
-    print(len(args))
-    if (len(args) < 3):
+    print(args)
+    if (len(args) < 3) or ((args[1] != "png") and (args[1] != "pdf")):
         print 'usage: output_mode(pdf or png or show) *.py file1 (file2 file3...)'
         quit()
     jh = JsonHelper(args[1:])
@@ -165,10 +168,10 @@ if __name__ == '__main__':
     jh.sort_by("hop", "snum")
     jh.sort_by("hop", "snum", None, cplx=2)
     jh.sort_by("hop", "lnum")
-    # jh.sort_by("hop", "lnum", "turn", snum=100)  # oresen
+    jh.sort_by("hop", "lnum", "turn", snum=100)  # oresen
     jh.sort_by("hop", "cplx")
 
-    # jh.sort_by("hop", "snum", "turn", cplx=2)  # oresen
+    jh.sort_by("hop", "snum", "turn", cplx=2)  # oresen
     jh.sort_by("hop", "cplx", None, snum=100)
 
     # oresen mode

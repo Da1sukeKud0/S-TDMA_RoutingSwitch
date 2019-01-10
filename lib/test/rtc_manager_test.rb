@@ -31,6 +31,41 @@ class RTCManagerTest
     make_link_and_make_host
   end
 
+  ## ツリートポロジを生成
+  def make_tree_topology(depth, fanout)
+    @type = "tree"
+    @depth = depth.to_i
+    @fanout = fanout.to_i
+    node = 1
+    papa = [], child = [1]
+    ## ホストまで含めたツリーの深さなので@depth - 1でループ
+    (@depth - 1).times do
+      papa = child
+      child = []
+      ## 親ノードに@fanout個の子ノードを接続
+      for p in papa
+        @fanout.times do
+          node += 1
+          @edges.push([p, node])
+          # puts "add link: #{p} to #{node}"
+          child.push(node)
+        end
+      end
+    end
+    @numOfSwitch = node
+    ## 最も若いノードにそれぞれfanout個のホストを付加(廃止)
+    #   hnode = 0
+    #   for c in child
+    #     @fanout.times do
+    #       hnode += 1
+    #       mac_address = "mac" + hnode.to_s
+    #       puts "add link: #{c} to host#{hnode.to_s}"
+    #     end
+    #   end
+    ## 最若ノードのみでなく全てのノードにホストを付加する(ツリーの定義にあっているのか？)
+    make_link_and_make_host
+  end
+
   ## フルメッシュトポロジを生成
   def make_fullmesh_topology(numOfSwitch)
     @type = "fullmesh"
@@ -200,6 +235,37 @@ def test_BA_max
   puts rtcm.run_testcase
 end
 
+## ツリートポロジの各種パラメータを自動設定し実行
+def test_tree_loop(loops = 100)
+  dep_and_fo = [[3,2],[3,3],[3,4],[4,2],[4,3],[5,2],[6,2]] ## snum<=150の範囲でテストケース作成
+  rputs "dep_and_fo: #{dep_and_fo}"
+  rputs "loops: #{loops}"
+  #rputs "depth_min: #{dep_min}, depth_max: #{dep_max}, fanout_min: #{fo_min}, fanout_max: #{fo_max}, loops: #{loops}"
+  output = []
+  dep_and_fo.each do |dep,fo|
+    puts "#{dep},#{fo}"
+    loops.times do
+      rtcm = RTCManagerTest.new
+      rtcm.make_tree_topology(dep, fo)
+      rtcm.make_testcase(5)
+      puts res = rtcm.run_testcase
+      res.each { |each| output.push(each) }
+    end
+  end
+  output_json(output)
+end
+
+def calc_tree_snum(dep, fo)
+  res = 0
+  oya = 1
+  dep.times do
+    res += oya*fo
+    oya *= fo
+  end
+  puts "depth: #{dep}, fanout: #{fo} =>> #{res}"
+  return res
+end
+
 if __FILE__ == $0
   ARGV[0] = "bamax" if ARGV[0] == nil
   @file_name = "test/rtcm_" + ARGV[0] + "_" + Time.new.strftime("%Y%m%d_%H%M") + ".json"
@@ -207,6 +273,9 @@ if __FILE__ == $0
   when "baloop"
     rputs "test_BA_loop is called."
     test_BA_loop(*ARGV[1..7].map(&:to_i))
+  when "treeloop"
+    rputs "test_tree_loop is called."
+    test_tree_loop(*ARGV[1].to_i)
   when "lineprof"
     rputs "test_lineprof is called."
     rputs "※このモードでの実行時間はlineprofにより大幅に伸びます"

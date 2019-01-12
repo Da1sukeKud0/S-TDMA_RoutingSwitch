@@ -20,6 +20,7 @@ class JsonHelper:
             print("imported file: " + str(file))
             with open(str(file)) as f:
                 self.dics.extend(json.load(f))
+        print("data size: " + str(len(self.dics)))
 
     # x軸要素,完全一致条件,凡例を指定して処理時間の平均値を算出
     # ex) jh.sort_by("lnum", subeach="turn", exact={"snum": 100})
@@ -98,18 +99,17 @@ class JsonHelper:
             errmax.append(max(v) - ave)
         err.append(errmin)
         err.append(errmax)
-        print(err)
         if self.target == "tf":
-            plot = pyplot.bar(xval, yval, yerr=err, color=color, label=label)
-            # plot = pyplot.bar(xval, yval)
+            #plot = pyplot.bar(xval, yval, yerr=err, color=color, label=label)
+            plot = pyplot.bar(xval, yval)
         else:
-            pyplot.errorbar(xval, yval, yerr=err,
-                            fmt="none", ecolor="lightgray")
+            #pyplot.errorbar(xval, yval, yerr=err,
+            #                fmt="none", ecolor="lightgray")
             plot = pyplot.plot(xval, yval, self.plotmode,
                                markersize=4, color=color, label=label, marker="o")
         if self.subeach is not None:
             pyplot.legend(title=self.__getLabel(
-                self.subeach))
+                self.subeach), prop=fp)
         pyplot.ylabel(self.__getLabel(self.target), fontproperties=fp)
         pyplot.xlabel(self.__getLabel(each), fontproperties=fp)
         # pyplot.xticks(
@@ -149,7 +149,7 @@ class JsonHelper:
             "hops": u"通信毎の累計増加ホップ数",
             "tf": u"スケジューリング可能率"
         }
-        return labels.get(each, "unknown")
+        return labels.get(each, u"unknown")
 
     def getFlatAve(self):
         result = {}
@@ -159,8 +159,7 @@ class JsonHelper:
                 continue
             result["all"].append(d["time"])
         print("")
-        print("all average: " + str(sum(result["all"])/len(result["all"])))
-        print("")
+        print("during time(ave): " + str(sum(result["all"])/len(result["all"])))
 
     def oresenplot(self):
         self.plotmode = ""
@@ -179,8 +178,7 @@ class JsonHelper:
             else:
                 result["all"].append(0.0)
         print("")
-        print("all average: " + str(sum(result["all"])/len(result["all"])))
-        print("")
+        print("hop(ave)" + str(sum(result["all"])/len(result["all"])))
 
     # 平均からの偏差を求める
     def __find_difference(self, array):
@@ -205,7 +203,6 @@ class JsonHelper:
 
 if __name__ == '__main__':
     args = sys.argv
-    print(args)
     if (len(args) < 3) or ((args[1] != "png") and (args[1] != "pdf")):
         print 'usage: output_mode(pdf or png or show) *.py file1 (file2 file3...)'
         quit()
@@ -215,8 +212,8 @@ if __name__ == '__main__':
     # jh.dotplot()
     # jh.sort_by("tf", "snum")
 
-    topo = "BA"
-    # topo = "tree"
+    #topo = "BA"
+    topo = "tree"
     # topo = "no"
     if topo == "BA":
         # dot mode

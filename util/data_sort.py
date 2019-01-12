@@ -36,7 +36,7 @@ class JsonHelper:
         result = {}
         for d in self.dics:
             # falseの結果は除外
-            if not d["tf"]:
+            if (target != "tf") and not d["tf"]:
                 continue
             # ExactMatch
             if not self.__exactMatch(d):
@@ -68,6 +68,12 @@ class JsonHelper:
             return d["time"]
         elif target == "hop":
             return d["rhop"] - d["shop"]
+        elif target == "tf":
+            if d["tf"]:
+                r = 100.0
+            else:
+                r = 0.0
+            return r
 
     def __exactMatch(self, target):
         for key, val in self.exact.items():
@@ -80,11 +86,15 @@ class JsonHelper:
         yval = []
         for k, v in sorted(dic.items(), key=lambda x: x[0]):
             ave = sum(v)/len(v)
-            # print("key: " + str(k) + ", ave: " + str(ave))
+            print("key: " + str(k) + ", ave: " + str(ave))
             xval.append(k)
             yval.append(ave)
-        plot = pyplot.plot(xval, yval, self.plotmode,
-                           markersize=4, color=color, label=label)
+        if self.target == "tf":
+            plot = pyplot.bar(xval, yval, color=color, label=label)
+            # plot = pyplot.bar(xval, yval)
+        else:
+            plot = pyplot.plot(xval, yval, self.plotmode,
+                               markersize=4, color=color, label=label, marker="o")
         if self.subeach is not None:
             pyplot.legend(title=self.__getLabel(
                 self.subeach))
@@ -120,9 +130,12 @@ class JsonHelper:
             "lnum": u"ネットワーク内に存在するリンクの数",
             "turn": u"実時間通信要求の入力順",
             "cplx": u"BAモデルに基づくスケールフリーネットワークの複雑度",
+            "dep": u"ツリートポロジの深さ",
+            "fan": u"単一の親ノードに接続された子ノードの数",
             "time": u"スケジューリング処理に要した時間 [s]",
             "hop": u"通信毎の平均増加ホップ数",
-            "hops": u"通信毎の累計増加ホップ数"
+            "hops": u"通信毎の累計増加ホップ数",
+            "tf": u"スケジューリング可能率"
         }
         return labels.get(each, "unknown")
 
@@ -145,6 +158,18 @@ class JsonHelper:
         self.plotmode = "o"
         self.filetail = ""
 
+    def getFlatTF(self):
+        result = {}
+        result["all"] = []
+        for d in self.dics:
+            if d["tf"]:
+                result["all"].append(100.0)
+            else:
+                result["all"].append(0.0)
+        print("")
+        print("all average: " + str(sum(result["all"])/len(result["all"])))
+        print("")
+
 
 if __name__ == '__main__':
     args = sys.argv
@@ -153,32 +178,56 @@ if __name__ == '__main__':
         print 'usage: output_mode(pdf or png or show) *.py file1 (file2 file3...)'
         quit()
     jh = JsonHelper(args[1:])
-    # dot mode
-    jh.dotplot()
-    jh.sort_by("time", "turn")
-    jh.sort_by("time", "turn", None, snum=100, cplx=2)
-    jh.sort_by("time", "snum")
-    jh.sort_by("time", "snum", None, cplx=2)
-    jh.sort_by("time", "lnum")
-    jh.sort_by("time", "lnum", "turn", snum=100)
-    jh.sort_by("time", "cplx")
-
-    jh.sort_by("hop", "turn")
-    jh.sort_by("hop", "turn", None, snum=100, cplx=2)
-    jh.sort_by("hop", "snum")
-    jh.sort_by("hop", "snum", None, cplx=2)
-    jh.sort_by("hop", "lnum")
-    jh.sort_by("hop", "lnum", "turn", snum=100)  # oresen
-    jh.sort_by("hop", "cplx")
-
-    jh.sort_by("hop", "snum", "turn", cplx=2)  # oresen
-    jh.sort_by("hop", "cplx", None, snum=100)
-
-    # oresen mode
-    jh.oresenplot()
-    jh.sort_by("hop", "lnum", "turn", snum=100)  # oresen
-    jh.sort_by("hop", "snum", "turn", cplx=2)  # oresen
     jh.getFlatAve()
+    jh.getFlatTF()
+    jh.dotplot()
+    jh.sort_by("tf", "snum")
+
+    # topo = "BA"
+    # topo = "tree"
+    topo = "no"
+    if topo == "BA":
+        # dot mode
+        jh.dotplot()
+        jh.sort_by("time", "turn")
+        jh.sort_by("time", "turn", None, snum=100, cplx=2)
+        jh.sort_by("time", "snum")
+        jh.sort_by("time", "snum", None, cplx=2)
+        jh.sort_by("time", "lnum")
+        jh.sort_by("time", "lnum", "turn", snum=100)
+        jh.sort_by("time", "cplx")
+
+        jh.sort_by("hop", "turn")
+        jh.sort_by("hop", "turn", None, snum=100, cplx=2)
+        jh.sort_by("hop", "snum")
+        jh.sort_by("hop", "snum", None, cplx=2)
+        jh.sort_by("hop", "lnum")
+        jh.sort_by("hop", "lnum", "turn", snum=100)  # oresen
+        jh.sort_by("hop", "cplx")
+
+        jh.sort_by("hop", "snum", "turn", cplx=2)  # oresen
+        jh.sort_by("hop", "cplx", None, snum=100)
+
+        # oresen mode
+        jh.oresenplot()
+        jh.sort_by("hop", "lnum", "turn", snum=100)  # oresen
+        jh.sort_by("hop", "snum", "turn", cplx=2)  # oresen
+    elif topo == "tree":
+        # for tree(増加ホップ数は必ず0)
+        # lnumとsnumがほぼ同義
+        # dot mode
+        jh.dotplot()
+        jh.sort_by("time", "turn")
+        jh.sort_by("time", "snum")
+        jh.sort_by("time", "snum", "fan")
+        jh.sort_by("time", "dep")
+        jh.sort_by("time", "dep", fan=2)
+        jh.sort_by("time", "dep", fan=3)
+        jh.sort_by("time", "fan")
+        jh.sort_by("tf", "snum")
+        # oresen mode
+        jh.oresenplot()
+
 
 """
 取得したデータは配列内dict形式。内訳は以下

@@ -84,15 +84,27 @@ class JsonHelper:
     def __ave(self, dic, each, close=True, color="C{}".format(0), label=None):
         xval = []
         yval = []
+        err = []
+        errmin = []
+        errmax = []
         for k, v in sorted(dic.items(), key=lambda x: x[0]):
             ave = sum(v)/len(v)
             print("key: " + str(k) + ", ave: " + str(ave))
             xval.append(k)
             yval.append(ave)
+            # err.append(self.__calculate_std(v))
+            # err.append(self.__calculate_maxmin(v))
+            errmin.append(ave - min(v))
+            errmax.append(max(v) - ave)
+        err.append(errmin)
+        err.append(errmax)
+        print(err)
         if self.target == "tf":
-            plot = pyplot.bar(xval, yval, color=color, label=label)
+            plot = pyplot.bar(xval, yval, yerr=err, color=color, label=label)
             # plot = pyplot.bar(xval, yval)
         else:
+            pyplot.errorbar(xval, yval, yerr=err,
+                            fmt="none", ecolor="lightgray")
             plot = pyplot.plot(xval, yval, self.plotmode,
                                markersize=4, color=color, label=label, marker="o")
         if self.subeach is not None:
@@ -170,6 +182,26 @@ class JsonHelper:
         print("all average: " + str(sum(result["all"])/len(result["all"])))
         print("")
 
+    # 平均からの偏差を求める
+    def __find_difference(self, array):
+        mean = sum(array)/len(array)
+        diff = []
+        for num in array:
+            diff.append(num-mean)
+        return diff
+
+    # 標準偏差を求める
+    def __calculate_std(self, array):
+        diff = self.__find_difference(array)
+        # 差の２乗を求める
+        squared_diff = []
+        for d in diff:
+            squared_diff.append(d**2)
+        # 分散を求める
+        sum_squared_diff = sum(squared_diff)
+        # return sum_squared_diff
+        return (sum_squared_diff/len(array))**0.5
+
 
 if __name__ == '__main__':
     args = sys.argv
@@ -180,12 +212,12 @@ if __name__ == '__main__':
     jh = JsonHelper(args[1:])
     jh.getFlatAve()
     jh.getFlatTF()
-    jh.dotplot()
-    jh.sort_by("tf", "snum")
+    # jh.dotplot()
+    # jh.sort_by("tf", "snum")
 
-    # topo = "BA"
+    topo = "BA"
     # topo = "tree"
-    topo = "no"
+    # topo = "no"
     if topo == "BA":
         # dot mode
         jh.dotplot()

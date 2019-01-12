@@ -243,7 +243,7 @@ end
 
 ## ツリートポロジの各種パラメータを自動設定し実行
 def test_tree_loop(loops = 100)
-  dep_and_fo = [[3, 2], [3, 3], [3, 4], [3, 5], [3, 6], [4, 2], [4, 3], [4, 4], [5, 2], [5, 3], [6, 2]] ## snum<=363の範囲でテストケース作成(最大時 [5,3])
+  dep_and_fo = [[3, 3], [3, 4], [3, 5], [3, 6], [4, 2], [4, 3], [4, 4], [5, 2], [5, 3], [6, 2]] ## 13<=snum<=363の範囲でテストケース作成(最大時 [5,3])
   rputs "dep_and_fo: #{dep_and_fo}"
   rputs "loops: #{loops}"
   #rputs "depth_min: #{dep_min}, depth_max: #{dep_max}, fanout_min: #{fo_min}, fanout_max: #{fo_max}, loops: #{loops}"
@@ -272,9 +272,9 @@ end
 
 ## ツリートポロジのスイッチ数の計算
 def get_tree_snum(dep, fo)
-  res = 0
+  res = 1
   oya = 1
-  dep.times do
+  (dep - 1).times do
     res += oya * fo
     oya *= fo
   end

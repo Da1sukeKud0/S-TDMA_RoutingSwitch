@@ -178,7 +178,7 @@ class JsonHelper:
             else:
                 result["all"].append(0.0)
         print("")
-        print("hop(ave)" + str(sum(result["all"])/len(result["all"])))
+        print("scheduling True(%): " + str(sum(result["all"])/len(result["all"])))
 
     # 平均からの偏差を求める
     def __find_difference(self, array):

@@ -177,19 +177,23 @@ class RTCManagerTest
   end
 end
 
+## クラス外
+
+## シェルコマンドの実行
 def sh(command)
   system(command) || fail("#{command} failed.")
   @logger.debug(command) if @logger
 end
 
-def output_json(hash)
+## 取得したデータをjson形式で出力
+def output_json(obj)
   File.open(@file_name, "w") do |file|
-    JSON.dump(hash, file)
+    JSON.dump(obj, file)
   end
 end
 
 ## BAモデルでの各種パラメータを自動設定し実行
-def test_BA_loop(snum_min = 10, snum_max = 100, snum_interval = 5, cplx_min = 1, cplx_max = 5, loops = 10)
+def test_ba_loop(snum_min = 10, snum_max = 100, snum_interval = 5, cplx_min = 1, cplx_max = 5, loops = 10)
   rputs "snum_min: #{snum_min}, snum_max: #{snum_max}, snum_interval: #{snum_interval}, cplx_min: #{cplx_min}, cplx_max: #{cplx_max}, loops: #{loops}"
   output = []
   snum = snum_min
@@ -210,13 +214,24 @@ def test_BA_loop(snum_min = 10, snum_max = 100, snum_interval = 5, cplx_min = 1,
   output_json(output)
 end
 
-def test_lineprof
+## BAモデルトポロジの単体実行
+def test_ba(snum = 100, cplx = 2)
+  rputs "snum: #{snum}, cplx: #{cplx}"
+  rtcm = RTCManagerTest.new
+  rtcm.make_ba_topology(snum, cplx)
+  rtcm.make_testcase(5)
+  puts rtcm.run_testcase
+end
+
+## ソースコードの行毎の実行時間を計測・ボトルネックとなる箇所を出力
+def test_lineprof(snum = 100, cplx = 2)
+  rputs "snum: #{snum}, cplx: #{cplx}"
   require "rblineprof"
   require "rblineprof-report"
   target = /#{Dir.pwd}\/./
   output = []
   rtcm = RTCManagerTest.new
-  rtcm.make_ba_topology(100, 2)
+  rtcm.make_ba_topology(snum, cplx)
   rtcm.make_testcase(5)
   profile = lineprof(target) do
     puts @res = rtcm.run_testcase
@@ -226,23 +241,14 @@ def test_lineprof
   LineProf.report(profile)
 end
 
-def test_BA_max
-  snum = 100
-  cplx = 2
-  rtcm = RTCManagerTest.new
-  rtcm.make_ba_topology(snum, cplx)
-  rtcm.make_testcase(5)
-  puts rtcm.run_testcase
-end
-
 ## ツリートポロジの各種パラメータを自動設定し実行
 def test_tree_loop(loops = 100)
-  dep_and_fo = [[3,2],[3,3],[3,4],[4,2],[4,3],[5,2],[6,2]] ## snum<=150の範囲でテストケース作成
+  dep_and_fo = [[3, 2], [3, 3], [3, 4], [3, 5], [3, 6], [4, 2], [4, 3], [4, 4], [5, 2], [5, 3], [6, 2]] ## snum<=363の範囲でテストケース作成(最大時 [5,3])
   rputs "dep_and_fo: #{dep_and_fo}"
   rputs "loops: #{loops}"
   #rputs "depth_min: #{dep_min}, depth_max: #{dep_max}, fanout_min: #{fo_min}, fanout_max: #{fo_max}, loops: #{loops}"
   output = []
-  dep_and_fo.each do |dep,fo|
+  dep_and_fo.each do |dep, fo|
     puts "#{dep},#{fo}"
     loops.times do
       rtcm = RTCManagerTest.new
@@ -255,11 +261,21 @@ def test_tree_loop(loops = 100)
   output_json(output)
 end
 
-def calc_tree_snum(dep, fo)
+## ツリートポロジの単体実行
+def test_tree(depth = 4, fanout = 4)
+  rputs "depth: #{depth}, fanout: #{fanout} (numOfSwitch: #{get_tree_snum(depth, fanout)})"
+  rtcm = RTCManagerTest.new
+  rtcm.make_tree_topology(depth, fanout)
+  rtcm.make_testcase(5)
+  puts rtcm.run_testcase
+end
+
+## ツリートポロジのスイッチ数の計算
+def get_tree_snum(dep, fo)
   res = 0
   oya = 1
   dep.times do
-    res += oya*fo
+    res += oya * fo
     oya *= fo
   end
   puts "depth: #{dep}, fanout: #{fo} =>> #{res}"
@@ -267,22 +283,26 @@ def calc_tree_snum(dep, fo)
 end
 
 if __FILE__ == $0
-  ARGV[0] = "bamax" if ARGV[0] == nil
+  ARGV[0] = "ba" if ARGV[0] == nil
   @file_name = "test/rtcm_" + ARGV[0] + "_" + Time.new.strftime("%Y%m%d_%H%M") + ".json"
   case ARGV[0]
   when "baloop"
-    rputs "test_BA_loop is called."
-    test_BA_loop(*ARGV[1..7].map(&:to_i))
+    rputs "test_ba_loop is called."
+    test_ba_loop(*ARGV[1..7].map(&:to_i))
+  when "ba"
+    rputs "test_ba is called."
+    test_ba(*ARGV[1..2].map(&:to_i))
   when "treeloop"
     rputs "test_tree_loop is called."
-    test_tree_loop(*ARGV[1].to_i)
+    ARGV[1] = 100 unless ARGV[1]
+    test_tree_loop(ARGV[1].to_i)
+  when "tree"
+    rputs "test_tree is called."
+    test_tree(*ARGV[1..2].map(&:to_i))
   when "lineprof"
     rputs "test_lineprof is called."
     rputs "※このモードでの実行時間はlineprofにより大幅に伸びます"
-    test_lineprof
-  when "bamax"
-    rputs "test_BA_max is called."
-    test_BA_max
+    test_lineprof(*ARGV[1..2].map(&:to_i))
   else
     rputs "test_BA_max is called."
     test_BA_max

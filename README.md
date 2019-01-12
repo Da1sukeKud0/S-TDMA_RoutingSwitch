@@ -43,12 +43,16 @@ Tremaを起動せずlib/rtc_manager.rbの動作テストを行う方法
 ruby lib/test/rtc_manager_test.rb bamax
 ```
 起動時の引数によりテストモードを指定できます。  
-+ bamax (引数なし)   
++ ba  
 BAモデルのトポロジ(スイッチ数100,複雑度2)に対し5回の実時間通信要求を実行
++ baloop  
+スイッチ数,複雑度を様々なパターンに変化させ生成したBAモデルのトポロジに対し連続した5回の実時間通信要求を実行
++ tree  
+ツリートポロジ(深さ4,拡散4)に対し5回の実時間通信要求を実行
++ baloop  
+スイッチ数,複雑度を様々なパターンに変化させ生成したツリートポロジに対し連続した5回の実時間通信要求を実行
 + lineprof  
 bamaxと同様のテストを実行しスクリプトの実行時間を行単位で計測
-+ baloop  
-スイッチ数,複雑度を様々なパターンに変化させ生成したBAモデルのトポロジに対し複数回の実時間通信要求を実行
 
 ![scheduling_flowchart.pdf](https://github.com/Da1sukeKud0/S-TDMA_RoutingSwitch/files/2693808/scheduling_flowchart.pdf)
 

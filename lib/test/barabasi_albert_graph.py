@@ -5,7 +5,7 @@ import os
 import copy
 import networkx
 from networkx.generators.random_graphs import barabasi_albert_graph
-from matplotlib import pyplot
+# from matplotlib import pyplot
 import pickle
 
 
@@ -38,9 +38,10 @@ def main():
         for l in sorted(G.edges(), key=lambda e: (e[0], e[1])):
             f.write(str(l) + "\n")
     # networkx.nx_agraph.view_pygraphviz(G, prog='dot')
-    networkx.draw(G, prog="dot", with_labels=True)
-    pngpath = ".topo_ba.png"
-    pyplot.savefig(pngpath)
+    # networkx.draw(G, prog="dot", with_labels=True,
+            #   pos=networkx.circular_layout(G), node_size=150, font_size=12)
+    # pngpath = ".topo_ba.pdf"
+    # pyplot.savefig(pngpath)
 
 
 if __name__ == '__main__':

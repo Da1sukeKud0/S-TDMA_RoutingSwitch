@@ -15,7 +15,7 @@ matplotlib.rcParams['pdf.fonttype'] = 42
 class JsonHelper:
     def __init__(self, args):
         self.dics = []
-        self.mode = args[0]
+        self.format = args[0]
         for file in args[1:]:
             print("imported file: " + str(file))
             with open(str(file)) as f:
@@ -32,8 +32,8 @@ class JsonHelper:
         print("")
         print("target: " + target)
         print("each: " + each)
-        print("ExactMatch:" + str(exact))
         print("subeach:" + str(subeach))
+        print("ExactMatch:" + str(exact))
         result = {}
         for d in self.dics:
             # falseの結果は除外
@@ -54,12 +54,12 @@ class JsonHelper:
                     result[d[subeach]][d[each]] = []
                 result[d[subeach]][d[each]].append(self.__getValue(target, d))
         if subeach is None:
-            self.__ave(result, each)
+            self.__ave(result)
         else:
             ctr = 0
             plots = []
             for key, val in result.items():
-                plots.append(self.__ave(val, each, False,
+                plots.append(self.__ave(val, False,
                                         "C{}".format(ctr), key))
                 ctr += 1
             pyplot.close()
@@ -82,12 +82,14 @@ class JsonHelper:
                 return False
         return True
 
-    def __ave(self, dic, each, close=True, color="C{}".format(0), label=None):
+    def __ave(self, dic, close=True, color="C{}".format(0), label=None):
         xval = []
         yval = []
+        # エラーバー
         err = []
         errmin = []
         errmax = []
+        # 平均値化
         for k, v in sorted(dic.items(), key=lambda x: x[0]):
             ave = sum(v)/len(v)
             print("key: " + str(k) + ", ave: " + str(ave))
@@ -97,32 +99,41 @@ class JsonHelper:
             # err.append(self.__calculate_maxmin(v))
             errmin.append(ave - min(v))
             errmax.append(max(v) - ave)
-        err.append(errmin)
-        err.append(errmax)
+        err = [errmin, errmax]
+        # 棒グラフ・点グラフ・エラーバーの設定
         if self.target == "tf":
-            #plot = pyplot.bar(xval, yval, yerr=err, color=color, label=label)
+            # plot = pyplot.bar(xval, yval, yerr=err, color=color, label=label)
             plot = pyplot.bar(xval, yval)
         else:
-            #pyplot.errorbar(xval, yval, yerr=err,
+            # pyplot.errorbar(xval, yval, yerr=err,
             #                fmt="none", ecolor="lightgray")
             plot = pyplot.plot(xval, yval, self.plotmode,
-                               markersize=4, color=color, label=label, marker="o")
+                               markersize=3, color=color, label=label, marker="o")
+        # 凡例の設定
         if self.subeach is not None:
-            pyplot.legend(title=self.__getLabel(
-                self.subeach), prop=fp)
+            pyplot.legend(title=self.__getLabel(self.subeach), prop=fp)
+        # ラベルの設定
         pyplot.ylabel(self.__getLabel(self.target), fontproperties=fp)
-        pyplot.xlabel(self.__getLabel(each), fontproperties=fp)
-        # pyplot.xticks(
-        # [1.25, 2.25], [u'目盛りは', 'fontproperties=fp'], fontproperties=fp)
-        # pyplot.title(u'タイトルはfontproperties=fp', fontproperties=fp)
-        # pyplot.show()
+        pyplot.xlabel(self.__getLabel(self.each), fontproperties=fp)
+        # x軸メモリの設定
+        if (self.each == "lnum") and (len(xval) >= 10):
+            pass
+        elif (self.each == "snum") and (self.get_topotype() == "tree"):
+            pass
+        else:
+            pyplot.xticks(xval)
+        # png, pdf(, show)
+        # if self.format == "show":
+        #     if close:
+        #         pyplot.show()
+        #     return plot
         if close:
             pyplot.savefig("tmp/" + str(self.target) + "__" +
-                           str(self.each) + self.__exact_to_s() + self.filetail + "." + self.mode)
+                           str(self.each) + self.__exact_to_s() + self.filetail + "." + self.format)
             pyplot.close()
         else:
             pyplot.savefig("tmp/" + str(self.target) + "__" + str(self.each) +
-                           "_" + str(self.subeach) + self.__exact_to_s() + self.filetail + "." + self.mode)
+                           "_" + str(self.subeach) + self.__exact_to_s() + self.filetail + "." + self.format)
         return plot
 
     def __exact_to_s(self):
@@ -159,7 +170,8 @@ class JsonHelper:
                 continue
             result["all"].append(d["time"])
         print("")
-        print("during time(ave): " + str(sum(result["all"])/len(result["all"])))
+        print("during time(ave): " +
+              str(sum(result["all"])/len(result["all"])))
 
     def oresenplot(self):
         self.plotmode = ""
@@ -178,7 +190,8 @@ class JsonHelper:
             else:
                 result["all"].append(0.0)
         print("")
-        print("scheduling True(%): " + str(sum(result["all"])/len(result["all"])))
+        print("scheduling True(%): " +
+              str(sum(result["all"])/len(result["all"])))
 
     # 平均からの偏差を求める
     def __find_difference(self, array):
@@ -200,20 +213,21 @@ class JsonHelper:
         # return sum_squared_diff
         return (sum_squared_diff/len(array))**0.5
 
+    def get_topotype(self):
+        return self.dics[0]["type"]
+
 
 if __name__ == '__main__':
     args = sys.argv
+    # and (args[1] != "show")):
     if (len(args) < 3) or ((args[1] != "png") and (args[1] != "pdf")):
-        print 'usage: output_mode(pdf or png or show) *.py file1 (file2 file3...)'
+        print 'usage: output_format(pdf or png or show) *.py file1 (file2 file3...)'
         quit()
     jh = JsonHelper(args[1:])
     jh.getFlatAve()
     jh.getFlatTF()
-    # jh.dotplot()
-    # jh.sort_by("tf", "snum")
 
-    #topo = "BA"
-    topo = "tree"
+    topo = jh.get_topotype()
     # topo = "no"
     if topo == "BA":
         # dot mode

@@ -249,7 +249,6 @@ def test_tree_loop(loops = 100)
   #rputs "depth_min: #{dep_min}, depth_max: #{dep_max}, fanout_min: #{fo_min}, fanout_max: #{fo_max}, loops: #{loops}"
   output = []
   dep_and_fo.each do |dep, fo|
-    puts "#{dep},#{fo}"
     loops.times do
       rtcm = RTCManagerTest.new
       rtcm.make_tree_topology(dep, fo)

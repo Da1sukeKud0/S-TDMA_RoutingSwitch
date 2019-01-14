@@ -1,12 +1,14 @@
 require_relative "graph"
 require_relative "path"
 require "trema"
+require_relative "cputs"
 
 # L2 routing path manager
 class PathManager < Trema::Controller
   def start
     @graph = Graph.new
-    logger.info "Path Manager started."
+    # logger.info "Path Manager started."
+    gputs "Path Manager started."
   end
 
   attr_accessor :graph

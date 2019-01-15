@@ -3,6 +3,7 @@
 import json
 import sys
 import numpy
+from scipy import optimize
 import matplotlib
 from matplotlib import pyplot
 from matplotlib.font_manager import FontProperties
@@ -10,12 +11,14 @@ fp = FontProperties(
     fname="/usr/share/fonts/truetype/fonts-japanese-gothic.ttf")
 matplotlib.rcParams['font.family'] = fp.get_name()
 matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['font.size'] = 14
 
 
 class JsonHelper:
     def __init__(self, args):
         self.dics = []
         self.format = args[0]
+        self.dotplot()  # default
         for file in args[1:]:
             print("imported file: " + str(file))
             with open(str(file)) as f:
@@ -109,19 +112,26 @@ class JsonHelper:
             #                fmt="none", ecolor="lightgray")
             plot = pyplot.plot(xval, yval, self.plotmode,
                                markersize=3, color=color, label=label, marker="o")
+        # plot = pyplot.plot(xval, self.__get_fit_1d_xval(xval, yval))
+        # plot = pyplot.plot(xval, self.__get_fit_2d_xval(xval, yval))
+        # plot = pyplot.plot(xval, self.__get_fit_3d_xval(xval, yval))
         # 凡例の設定
         if self.subeach is not None:
             pyplot.legend(title=self.__getLabel(self.subeach), prop=fp)
         # ラベルの設定
-        pyplot.ylabel(self.__getLabel(self.target), fontproperties=fp)
-        pyplot.xlabel(self.__getLabel(self.each), fontproperties=fp)
+        pyplot.ylabel(self.__getLabel(self.target),
+                      fontproperties=fp, fontsize="larger")
+        pyplot.xlabel(self.__getLabel(self.each),
+                      fontproperties=fp, fontsize="larger")
         # x軸メモリの設定
+        # pyplot.xticks(fontsize="x-large")
+        # pyplot.yticks(fontsize="x-large")
         if (self.each == "lnum") and (len(xval) >= 10):
             pass
-        elif (self.each == "snum") and (self.get_topotype() == "tree"):
+        elif (self.each == "snum") and ((len(xval) >= 10) or (self.get_topotype() == "tree")):
             pass
         else:
-            pyplot.xticks(xval)
+            pyplot.xticks(xval)  # , fontsize="x-large")
         # png, pdf(, show)
         # if self.format == "show":
         #     if close:
@@ -129,12 +139,40 @@ class JsonHelper:
         #     return plot
         if close:
             pyplot.savefig("tmp/" + str(self.target) + "__" +
-                           str(self.each) + self.__exact_to_s() + self.filetail + "." + self.format)
+                           str(self.each) + self.__exact_to_s() + self.filetail + "." + self.format, bbox_inches='tight')
             pyplot.close()
         else:
             pyplot.savefig("tmp/" + str(self.target) + "__" + str(self.each) +
-                           "_" + str(self.subeach) + self.__exact_to_s() + self.filetail + "." + self.format)
+                           "_" + str(self.subeach) + self.__exact_to_s() + self.filetail + "." + self.format, bbox_inches='tight')
         return plot
+
+    def __get_fit_1d_xval(self, xval, yval):
+        def fit(x, a, b):
+            return a*x + b
+        xcur = optimize.curve_fit(fit, xval, yval)
+        fitxval = []
+        for x in xval:
+            fitxval.append(fit(x, xcur[0][0], xcur[0][1]))
+        return numpy.array(fitxval)
+
+    def __get_fit_2d_xval(self, xval, yval):
+        def fit(x, a, b, c):
+            return a * x**2 + b * x + c
+        xcur = optimize.curve_fit(fit, xval, yval)
+        fitxval = []
+        for x in xval:
+            fitxval.append(fit(x, xcur[0][0], xcur[0][1], xcur[0][2]))
+        return numpy.array(fitxval)
+
+    def __get_fit_3d_xval(self, xval, yval):
+        def fit(x, a, b, c, d):
+            return a * x**3 + b * x**2 + c * x + d
+        xcur = optimize.curve_fit(fit, xval, yval)
+        fitxval = []
+        for x in xval:
+            fitxval.append(
+                fit(x, xcur[0][0], xcur[0][1], xcur[0][2], xcur[0][3]))
+        return numpy.array(fitxval)
 
     def __exact_to_s(self):
         if len(self.exact) == 0:
@@ -227,8 +265,15 @@ if __name__ == '__main__':
     jh.getFlatAve()
     jh.getFlatTF()
 
-    topo = jh.get_topotype()
-    # topo = "no"
+    time = "time"
+    turn = "turn"
+    snum = "snum"
+    lnum = "lnum"
+    cplx = "cplx"
+    dep = "dep"
+    fan = "fan"
+    # topo = jh.get_topotype()
+    topo = "grad"
     if topo == "BA":
         # dot mode
         jh.dotplot()
@@ -270,6 +315,20 @@ if __name__ == '__main__':
         jh.sort_by("tf", "snum")
         # oresen mode
         jh.oresenplot()
+    else:
+        jh.dotplot()
+        # jh.sort_by("time", "snum", "turn")
+        # jh.sort_by("time", "lnum", "turn")
+        # jh.sort_by("time", "lnum", "turn", snum=100)
+        # jh.sort_by(time, turn, lnum, snum=100)
+        # jh.sort_by("hop", "lnum", "turn")
+        # jh.sort_by("hop", "snum", "turn")
+        # jh.sort_by("hop", "lnum", "turn", snum=100)
+
+        jh.oresenplot()
+        # jh.sort_by("hop", "lnum", "turn", snum=100)  # oresen
+        # jh.sort_by("hop", "snum", "turn")
+        # jh.sort_by("hop", "lnum", "turn")
 
 
 """

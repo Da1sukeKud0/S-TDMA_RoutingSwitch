@@ -130,6 +130,7 @@ class RTCManagerTest
       r.store("rhop", @rtc_manager.real_hop) ## 実際に設定された経路の平均ホップ数
       r.store("shops", @rtc_manager.shortest_hops) ## 単純最短経路の累計ホップ数
       r.store("rhops", @rtc_manager.real_hops) ## 実際に設定された経路の累計ホップ数
+      r.store("cdi", @rtc_manager.cdi) ## ダイクストラ最短経路探索が実行された回数
       result.push(r)
     end
     return result

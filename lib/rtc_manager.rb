@@ -18,6 +18,8 @@ class RTCManager #< Trema::Controller
     @tmp_msg = Hash.new ## for test
   end
 
+  ## for test
+  attr_reader :cdi
   ## for hop_diff
   attr_reader :shortest_hop
   attr_reader :real_hop
@@ -83,6 +85,7 @@ class RTCManager #< Trema::Controller
     puts "初期位相 #{initial_phase} で経路探索を開始します"
     if (@timeslot_table.all? { |key, each| each.size == 0 }) ##既存のrtcがない場合
       route = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
+      @cdi += 1.0 ## for test
       if (route)
         ## for hop_diff
         hop = (route.size / 2 - 1).to_f
@@ -120,6 +123,7 @@ class RTCManager #< Trema::Controller
             return false
           end
           route = Dijkstra.new(@graph_table[timeslot]).run(rtc.source_mac, rtc.destination_mac)
+          @cdi += 1.0 ## for test
           if (route)
             puts "到達可能"
             route = route.reject { |each| each.is_a? Integer }
@@ -192,6 +196,7 @@ class RTCManager #< Trema::Controller
     @real_hops = []
     @shortest_hop = 0
     @real_hop = 0
+    @cdi = 0.0 ## ダイクストラ探索回数を示す ## for test
     periodSchedule(message, source_mac, destination_mac, period)
   end
 

@@ -72,6 +72,15 @@ class JsonHelper:
             return d["time"]
         elif target == "hop":
             return d["rhop"] - d["shop"]
+        elif target == "hops":
+            if type(d["rhops"]) is float:
+                hops = d["rhops"] - d["shops"]
+            elif type(d["rhops"]) is list:
+                hops = sum(d["rhops"]) - sum(d["shops"])
+            else:
+                print("error")
+                quit()
+            return hops
         elif target == "tf":
             if d["tf"]:
                 r = 100.0
@@ -174,6 +183,17 @@ class JsonHelper:
                 fit(x, xcur[0][0], xcur[0][1], xcur[0][2], xcur[0][3]))
         return numpy.array(fitxval)
 
+    # 計測された処理時間はほぼ最短経路探索処理に依存
+    # tc_dijkstra(snum) * turn>=5での平均実行回数(19.25) * (1+initial_phaseずらし回数)
+    def __get_fit_dijk_xval(self, xval, yval):
+        def fit(x, a):
+            return a * x**2
+        xcur = optimize.curve_fit(fit, xval, yval)
+        fitxval = []
+        for x in xval:
+            fitxval.append(fit(x, xcur[0][0]))
+        return numpy.array(fitxval)
+
     def __exact_to_s(self):
         if len(self.exact) == 0:
             s = ""
@@ -195,7 +215,7 @@ class JsonHelper:
             "fan": u"単一の親ノードに接続された子ノードの数",
             "time": u"スケジューリング処理に要した時間 [s]",
             "hop": u"通信毎の平均増加ホップ数",
-            "hops": u"通信毎の累計増加ホップ数",
+            "hops": u"通信毎の合計増加ホップ数",
             "tf": u"スケジューリング可能率"
         }
         return labels.get(each, u"unknown")
@@ -266,6 +286,9 @@ if __name__ == '__main__':
     jh.getFlatTF()
 
     time = "time"
+    hop = "hop"
+    hops = "hops"
+    tf = "tf"
     turn = "turn"
     snum = "snum"
     lnum = "lnum"
@@ -320,37 +343,38 @@ if __name__ == '__main__':
         # jh.sort_by("time", "snum", "turn")
         # jh.sort_by("time", "lnum", "turn")
         # jh.sort_by("time", "lnum", "turn", snum=100)
-        # jh.sort_by(time, turn, lnum, snum=100)
-        # jh.sort_by("hop", "lnum", "turn")
-        # jh.sort_by("hop", "snum", "turn")
-        # jh.sort_by("hop", "lnum", "turn", snum=100)
+        # jh.sort_by("hops", "lnum", "turn")
+        # jh.sort_by("hops", "snum", "turn")
 
         jh.oresenplot()
-        # jh.sort_by("hop", "lnum", "turn", snum=100)  # oresen
-        # jh.sort_by("hop", "snum", "turn")
-        # jh.sort_by("hop", "lnum", "turn")
+        jh.sort_by("hops", "lnum", "turn", snum=80)  # oresen
 
 
 """
 取得したデータは配列内dict形式。内訳は以下
-# 結果出力に用いる各種情報
-def save_tag
+## 結果出力に用いる各種情報
+  def save_tag
     @tagList = Hash.new ## データのタグリスト(rtcの実行順(turn)を除く)
     @tagList.store("type", @type) ## トポロジタイプ
     @tagList.store("snum", @numOfSwitch) ## スイッチ数
     @tagList.store("rnum", @numOfReq) ## RTC要求数
-    # リンク数(switchNum-complexity)*complexityで算出可能
-    @tagList.store("lnum", @edges.size)
+    @tagList.store("lnum", @edges.size) ## リンク数(switchNum-complexity)*complexityで算出可能
     if (@type == "BA")
-        @tagList.store("cplx", @complexity) ## 複雑度
+      @tagList.store("cplx", @complexity) ## 複雑度
     elsif (@type == "tree")
-        @tagList.store("dep", @depth)
-        @tagList.store("fan", @fanout)
+      @tagList.store("dep", @depth)
+      @tagList.store("fan", @fanout)
     end
-end
-# 計測結果をresultに格納
-    r = @tagList.clone
-    r.store("turn", n) ## RTC実行順
-    r.store("time", time) ## 処理時間
-    r.store("tf", tf) ## add_rtc?
+  end
+
+## 計測結果をresultに格納
+r = @tagList.clone
+r.store("turn", n) ## RTC実行順
+r.store("time", time) ## 処理時間
+r.store("tf", tf) ## add_rtc?
+r.store("shop", @rtc_manager.shortest_hop) ## 単純最短経路の平均ホップ数
+r.store("rhop", @rtc_manager.real_hop) ## 実際に設定された経路の平均ホップ数
+r.store("shops", @rtc_manager.shortest_hops) ## 単純最短経路の累計ホップ数
+r.store("rhops", @rtc_manager.real_hops) ## 実際に設定された経路の累計ホップ数
+result.push(r)
 """

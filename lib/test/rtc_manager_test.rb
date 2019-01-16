@@ -194,8 +194,8 @@ def output_json(obj)
 end
 
 ## BAモデルでの各種パラメータを自動設定し実行
-def test_ba_loop(snum_min = 10, snum_max = 100, snum_interval = 5, cplx_min = 1, cplx_max = 5, loops = 10)
-  rputs "snum_min: #{snum_min}, snum_max: #{snum_max}, snum_interval: #{snum_interval}, cplx_min: #{cplx_min}, cplx_max: #{cplx_max}, loops: #{loops}"
+def test_ba_loop(snum_min = 10, snum_max = 100, snum_interval = 5, cplx_min = 1, cplx_max = 5, rnum = 5, loops = 10)
+  rputs "snum_min: #{snum_min}, snum_max: #{snum_max}, snum_interval: #{snum_interval}, cplx_min: #{cplx_min}, cplx_max: #{cplx_max}, rnum: #{rnum}, loops: #{loops}"
   output = []
   snum = snum_min
   while (snum <= snum_max)
@@ -204,7 +204,7 @@ def test_ba_loop(snum_min = 10, snum_max = 100, snum_interval = 5, cplx_min = 1,
       loops.times do
         rtcm = RTCManagerTest.new
         rtcm.make_ba_topology(snum, cplx)
-        rtcm.make_testcase(5)
+        rtcm.make_testcase(rnum)
         puts res = rtcm.run_testcase
         res.each { |each| output.push(each) }
       end
@@ -288,7 +288,7 @@ if __FILE__ == $0
   case ARGV[0]
   when "baloop"
     rputs "test_ba_loop is called."
-    test_ba_loop(*ARGV[1..7].map(&:to_i))
+    test_ba_loop(*ARGV[1..8].map(&:to_i))
   when "ba"
     rputs "test_ba is called."
     test_ba(*ARGV[1..2].map(&:to_i))
@@ -304,7 +304,7 @@ if __FILE__ == $0
     rputs "※このモードでの実行時間はlineprofにより大幅に伸びます"
     test_lineprof(*ARGV[1..2].map(&:to_i))
   else
-    rputs "test_BA_max is called."
-    test_BA_max
+    rputs "test_ba is called."
+    test_ba
   end
 end

@@ -24,6 +24,7 @@ class JsonHelper:
             with open(str(file)) as f:
                 self.dics.extend(json.load(f))
         print("data size: " + str(len(self.dics)))
+        self.topotype = self.get_topotype()
 
     # x軸要素,完全一致条件,凡例を指定して処理時間の平均値を算出
     # ex) jh.sort_by("lnum", subeach="turn", exact={"snum": 100})
@@ -62,8 +63,7 @@ class JsonHelper:
             ctr = 0
             plots = []
             for key, val in result.items():
-                plots.append(self.__ave(val, False,
-                                        "C{}".format(ctr), key))
+                plots.append(self.__ave(val, False, ctr, key))
                 ctr += 1
             pyplot.close()
 
@@ -81,6 +81,8 @@ class JsonHelper:
                 print("error")
                 quit()
             return hops
+        elif target == "cdi":
+            return d["cdi"]
         elif target == "tf":
             if d["tf"]:
                 r = 100.0
@@ -94,7 +96,8 @@ class JsonHelper:
                 return False
         return True
 
-    def __ave(self, dic, close=True, color="C{}".format(0), label=None):
+    def __ave(self, dic, close=True, ctr=0, label=None):
+        color = "C{}".format(ctr)
         xval = []
         yval = []
         # エラーバー
@@ -115,18 +118,30 @@ class JsonHelper:
         # 棒グラフ・点グラフ・エラーバーの設定
         if self.target == "tf":
             # plot = pyplot.bar(xval, yval, yerr=err, color=color, label=label)
-            plot = pyplot.bar(xval, yval)
+            # plot = pyplot.bar(xval, yval)
+            # plot = pyplot.bar(map(lambda x: x+ctr*0.5, xval), yval)
+            plot = pyplot.plot(xval, yval, "",
+                               markersize=3, color=color, label=label, marker="o")
+            # pyplot.yticks([0, 20, 40, 60, 80, 100])
+            # pyplot.yticks([50, 60, 70, 80, 90, 100])
+            # pyplot.yticks(range(80, 101, 2))
         else:
             # pyplot.errorbar(xval, yval, yerr=err,
             #                fmt="none", ecolor="lightgray")
+            # xval2 = [xval[i] + xval2[i-1] for i in range(len(xval))]
+            yval2 = [sum(yval[:i]) for i in range(len(yval))]
             plot = pyplot.plot(xval, yval, self.plotmode,
                                markersize=3, color=color, label=label, marker="o")
+            if (self.target == "cdi"):
+                pass
+            # pyplot.yticks(range(0, 20, 2))
         # plot = pyplot.plot(xval, self.__get_fit_1d_xval(xval, yval))
         # plot = pyplot.plot(xval, self.__get_fit_2d_xval(xval, yval))
         # plot = pyplot.plot(xval, self.__get_fit_3d_xval(xval, yval))
+        # plot = pyplot.plot(xval, self.__get_fit_dijk_xval(xval, yval))
         # 凡例の設定
         if self.subeach is not None:
-            pyplot.legend(title=self.__getLabel(self.subeach), prop=fp)
+            pyplot.legend(title=self.__getLabel(self.subeach), prop=fp, ncol=2)
         # ラベルの設定
         pyplot.ylabel(self.__getLabel(self.target),
                       fontproperties=fp, fontsize="larger")
@@ -147,12 +162,12 @@ class JsonHelper:
         #         pyplot.show()
         #     return plot
         if close:
-            pyplot.savefig("tmp/" + str(self.target) + "__" +
+            pyplot.savefig("tmp/" + str(self.topotype) + "/" + str(self.target) + "__" +
                            str(self.each) + self.__exact_to_s() + self.filetail + "." + self.format, bbox_inches='tight')
             pyplot.close()
         else:
-            pyplot.savefig("tmp/" + str(self.target) + "__" + str(self.each) +
-                           "_" + str(self.subeach) + self.__exact_to_s() + self.filetail + "." + self.format, bbox_inches='tight')
+            pyplot.savefig("tmp/" + str(self.topotype) + "/" + str(self.target) + "__" + str(self.each) + "_" + str(
+                self.subeach) + self.__exact_to_s() + self.filetail + "." + self.format, bbox_inches='tight')
         return plot
 
     def __get_fit_1d_xval(self, xval, yval):
@@ -171,6 +186,8 @@ class JsonHelper:
         fitxval = []
         for x in xval:
             fitxval.append(fit(x, xcur[0][0], xcur[0][1], xcur[0][2]))
+        print(str(xcur[0][0]) + " x^2 " +
+              str(xcur[0][1]) + " x " + str(xcur[0][2]))
         return numpy.array(fitxval)
 
     def __get_fit_3d_xval(self, xval, yval):
@@ -186,12 +203,13 @@ class JsonHelper:
     # 計測された処理時間はほぼ最短経路探索処理に依存
     # tc_dijkstra(snum) * turn>=5での平均実行回数(19.25) * (1+initial_phaseずらし回数)
     def __get_fit_dijk_xval(self, xval, yval):
-        def fit(x, a):
-            return a * x**2
+        def fit(x, a, b):
+            return a * (x**2) + b
         xcur = optimize.curve_fit(fit, xval, yval)
         fitxval = []
         for x in xval:
-            fitxval.append(fit(x, xcur[0][0]))
+            fitxval.append(fit(x, xcur[0][0], xcur[0][1]))
+        print(str(xcur[0][0]) + " x^2 " + str(xcur[0][1]))
         return numpy.array(fitxval)
 
     def __exact_to_s(self):
@@ -210,13 +228,14 @@ class JsonHelper:
             "rnum": u"入力された実時間通信要求の数",
             "lnum": u"ネットワーク内に存在するリンクの数",
             "turn": u"実時間通信要求の入力順",
-            "cplx": u"BAモデルに基づくスケールフリーネットワークの複雑度",
+            "cplx": u"ランダムネットワークの\n　　　複雑度",
             "dep": u"ツリートポロジの深さ",
             "fan": u"単一の親ノードに接続された子ノードの数",
-            "time": u"スケジューリング処理に要した時間 [s]",
+            "time": u"平均処理時間 [s]",
             "hop": u"通信毎の平均増加ホップ数",
-            "hops": u"通信毎の合計増加ホップ数",
-            "tf": u"スケジューリング可能率"
+            "hops": u"通信毎の平均総増加ホップ数",
+            "tf": u"スケジューリング可能率 [%]",
+            "cdi": u"最短経路探索の平均実行回数"
         }
         return labels.get(each, u"unknown")
 
@@ -340,25 +359,38 @@ if __name__ == '__main__':
         jh.oresenplot()
     else:
         jh.dotplot()
-        # jh.sort_by("time", "snum", "turn")
-        # jh.sort_by("time", "lnum", "turn")
+        # jh.sort_by("cdi", "snum", "turn", cplx=2)
+        # jh.sort_by("time", "turn")
+        # jh.sort_by("cdi", "turn")
+        # jh.sort_by("time", "turn", "cplx", snum=100) # grad
+        # jh.sort_by("cdi", "turn", cplx=1)
+        # jh.sort_by("cdi", "turn", cplx=2)
+        # jh.sort_by("cdi", "turn", cplx=3)
+        # jh.sort_by("cdi", "turn", cplx=4)
+        # jh.sort_by("cdi", "turn", cplx=5)
+        # jh.sort_by("cdi", "turn", cplx=2, snum=40)
+        # jh.sort_by("time", "snum", "turn")  # grad
+        # jh.sort_by("time", "snum", turn=5)
+        # jh.sort_by("time", "lnum", "turn")  # grad
         # jh.sort_by("time", "lnum", "turn", snum=100)
-        # jh.sort_by("hops", "lnum", "turn")
-        # jh.sort_by("hops", "snum", "turn")
-
+        jh.sort_by("hops", "lnum", "turn")  # grad
+        jh.sort_by("hops", "snum", "turn")  # grad
+        # jh.sort_by("tf", "cplx", "turn")
         jh.oresenplot()
-        jh.sort_by("hops", "lnum", "turn", snum=80)  # oresen
+        # jh.sort_by("tf", "snum", "turn")  # grad
+        # jh.sort_by("tf", "snum", "cplx")  # grad
 
 
 """
 取得したデータは配列内dict形式。内訳は以下
-## 結果出力に用いる各種情報
+# 結果出力に用いる各種情報
   def save_tag
     @tagList = Hash.new ## データのタグリスト(rtcの実行順(turn)を除く)
     @tagList.store("type", @type) ## トポロジタイプ
     @tagList.store("snum", @numOfSwitch) ## スイッチ数
     @tagList.store("rnum", @numOfReq) ## RTC要求数
-    @tagList.store("lnum", @edges.size) ## リンク数(switchNum-complexity)*complexityで算出可能
+    # リンク数(switchNum-complexity)*complexityで算出可能
+    @tagList.store("lnum", @edges.size)
     if (@type == "BA")
       @tagList.store("cplx", @complexity) ## 複雑度
     elsif (@type == "tree")
@@ -367,7 +399,7 @@ if __name__ == '__main__':
     end
   end
 
-## 計測結果をresultに格納
+# 計測結果をresultに格納
 r = @tagList.clone
 r.store("turn", n) ## RTC実行順
 r.store("time", time) ## 処理時間

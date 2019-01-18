@@ -201,12 +201,19 @@ def test_ba_loop(snum_min = 10, snum_max = 100, snum_interval = 5, cplx_min = 1,
   while (snum <= snum_max)
     cplx = cplx_min
     while (cplx <= cplx_max)
+      l = 1
       loops.times do
+        rputs "##########################"
+        rputs "##########################"
+        rputs "##### snum:#{snum}, cplx: #{cplx}, loops: #{l} #####"
+        rputs "##########################"
+        rputs "##########################"
         rtcm = RTCManagerTest.new
         rtcm.make_ba_topology(snum, cplx)
         rtcm.make_testcase(rnum)
         puts res = rtcm.run_testcase
         res.each { |each| output.push(each) }
+        l += 1
       end
       cplx += 1
     end
@@ -250,12 +257,19 @@ def test_tree_loop(loops = 100)
   #rputs "depth_min: #{dep_min}, depth_max: #{dep_max}, fanout_min: #{fo_min}, fanout_max: #{fo_max}, loops: #{loops}"
   output = []
   dep_and_fo.each do |dep, fo|
+    l = 1
     loops.times do
+      rputs "##########################"
+      rputs "##########################"
+      rputs "##### depth:#{dep}, fanout: #{fo}, loops: #{l} #####"
+      rputs "##########################"
+      rputs "##########################"
       rtcm = RTCManagerTest.new
       rtcm.make_tree_topology(dep, fo)
       rtcm.make_testcase(5)
       puts res = rtcm.run_testcase
       res.each { |each| output.push(each) }
+      l += 1
     end
   end
   output_json(output)

@@ -27,4 +27,7 @@ def ave_number_of_executions(turn)
   end
 end
 
-ave_number_of_executions(5)
+if __FILE__ == $0
+  ARGV[0] = 20 unless ARGV[0]
+  ave_number_of_executions(ARGV[0].to_i)
+end

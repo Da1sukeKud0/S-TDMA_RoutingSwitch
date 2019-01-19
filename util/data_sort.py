@@ -46,6 +46,8 @@ class JsonHelper:
             # ExactMatch
             if not self.__exactMatch(d):
                 continue
+            if (each == "v_dijk"):
+                d[each] = self.__getValue("v_dijk", d)
             # resultに処理時間を格納
             if subeach is None:
                 if d[each] not in result.keys():
@@ -89,6 +91,8 @@ class JsonHelper:
             else:
                 r = 0.0
             return r
+        elif target == "v_dijk":
+            return self.v_dijkstra(d["snum"], d["cplx"])
 
     def __exactMatch(self, target):
         for key, val in self.exact.items():
@@ -128,10 +132,13 @@ class JsonHelper:
         else:
             # pyplot.errorbar(xval, yval, yerr=err,
             #                fmt="none", ecolor="lightgray")
-            # xval2 = [xval[i] + xval2[i-1] for i in range(len(xval))]
             yval2 = [sum(yval[:i]) for i in range(len(yval))]
             plot = pyplot.plot(xval, yval, self.plotmode,
                                markersize=3, color=color, label=label, marker="o")
+            # xval = [self.v_dijkstra(
+            #     xval[i], label) for i in range(len(xval))]
+            # plot = pyplot.plot(xval, yval, self.plotmode,
+            #                    markersize=3, color=color, label=label, marker="o")
             if (self.target == "cdi"):
                 pass
             # pyplot.yticks(range(0, 20, 2))
@@ -141,7 +148,8 @@ class JsonHelper:
         # plot = pyplot.plot(xval, self.__get_fit_dijk_xval(xval, yval))
         # 凡例の設定
         if self.subeach is not None:
-            pyplot.legend(title=self.__getLabel(self.subeach), prop=fp, ncol=2)
+            pyplot.legend(title=self.__getLabel(
+                self.subeach), prop=fp, ncol=2)
         # ラベルの設定
         pyplot.ylabel(self.__getLabel(self.target),
                       fontproperties=fp, fontsize="larger")
@@ -153,6 +161,8 @@ class JsonHelper:
         if (self.each == "lnum") and (len(xval) >= 10):
             pass
         elif (self.each == "snum") and ((len(xval) >= 10) or (self.get_topotype() == "tree")):
+            pass
+        elif (self.each == "v_dijk"):
             pass
         else:
             pyplot.xticks(xval)  # , fontsize="x-large")
@@ -230,12 +240,13 @@ class JsonHelper:
             "turn": u"実時間通信要求の入力順",
             "cplx": u"ランダムネットワークの\n　　　複雑度",
             "dep": u"ツリートポロジの深さ",
-            "fan": u"単一の親ノードに接続された子ノードの数",
+            "fan": u"ファンアウト",
             "time": u"平均処理時間 [s]",
             "hop": u"通信毎の平均増加ホップ数",
             "hops": u"通信毎の平均総増加ホップ数",
             "tf": u"スケジューリング可能率 [%]",
-            "cdi": u"最短経路探索の平均実行回数"
+            "cdi": u"最短経路探索の平均実行回数",
+            "v_dijk": u"ダイクストラ法の最短経路探索におけるノード数"
         }
         return labels.get(each, u"unknown")
 
@@ -292,6 +303,9 @@ class JsonHelper:
 
     def get_topotype(self):
         return self.dics[0]["type"]
+
+    def v_dijkstra(self, snum, c):
+        return snum*(3+2*c)-2*c**2
 
 
 if __name__ == '__main__':
@@ -359,26 +373,21 @@ if __name__ == '__main__':
         jh.oresenplot()
     else:
         jh.dotplot()
-        # jh.sort_by("cdi", "snum", "turn", cplx=2)
-        # jh.sort_by("time", "turn")
-        # jh.sort_by("cdi", "turn")
-        # jh.sort_by("time", "turn", "cplx", snum=100) # grad
-        # jh.sort_by("cdi", "turn", cplx=1)
-        # jh.sort_by("cdi", "turn", cplx=2)
-        # jh.sort_by("cdi", "turn", cplx=3)
-        # jh.sort_by("cdi", "turn", cplx=4)
-        # jh.sort_by("cdi", "turn", cplx=5)
-        # jh.sort_by("cdi", "turn", cplx=2, snum=40)
-        # jh.sort_by("time", "snum", "turn")  # grad
-        # jh.sort_by("time", "snum", turn=5)
-        # jh.sort_by("time", "lnum", "turn")  # grad
-        # jh.sort_by("time", "lnum", "turn", snum=100)
-        jh.sort_by("hops", "lnum", "turn")  # grad
-        jh.sort_by("hops", "snum", "turn")  # grad
-        # jh.sort_by("tf", "cplx", "turn")
+        # jh.sort_by("time", "turn", cplx=2, snum=100)  # ba
+        # jh.sort_by("cdi", "turn", cplx=2, snum=100)  # ba
+        # jh.sort_by("time", "turn")  # tree
+        # jh.sort_by("cdi", "turn")  # tree
+        # jh.sort_by("time", "snum", "turn")  # ba
+        # jh.sort_by("time", "snum", "fan") # tree
+        # jh.sort_by("time", "v_dijk", "turn", cplx=2)  # ba?
+        # jh.sort_by("time", "lnum", "turn")  # ba
+        # jh.sort_by("hops", "turn", "lnum")  # ba
+        # jh.sort_by("hops", "lnum")  # ba
+        # jh.sort_by("hops", "turn")  # ba
         jh.oresenplot()
-        # jh.sort_by("tf", "snum", "turn")  # grad
-        # jh.sort_by("tf", "snum", "cplx")  # grad
+        # jh.sort_by("tf", "turn", "snum")  # ba
+        # jh.sort_by("tf", "turn", snum=100)  # ba
+        jh.sort_by("tf", "turn", "cplx", snum=100)  # ba
 
 
 """

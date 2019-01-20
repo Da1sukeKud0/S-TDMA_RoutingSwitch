@@ -223,16 +223,16 @@ def test_ba_loop(snum_min = 10, snum_max = 100, snum_interval = 5, cplx_min = 1,
 end
 
 ## BAモデルトポロジの単体実行
-def test_ba(snum = 100, cplx = 2)
+def test_ba(snum = 100, cplx = 2, rnum = 5)
   rputs "snum: #{snum}, cplx: #{cplx}"
   rtcm = RTCManagerTest.new
   rtcm.make_ba_topology(snum, cplx)
-  rtcm.make_testcase(5)
+  rtcm.make_testcase(rnum)
   puts rtcm.run_testcase
 end
 
 ## ソースコードの行毎の実行時間を計測・ボトルネックとなる箇所を出力
-def test_lineprof(snum = 100, cplx = 2)
+def test_lineprof(snum = 100, cplx = 2, rnum = 5)
   rputs "snum: #{snum}, cplx: #{cplx}"
   require "rblineprof"
   require "rblineprof-report"
@@ -240,7 +240,7 @@ def test_lineprof(snum = 100, cplx = 2)
   output = []
   rtcm = RTCManagerTest.new
   rtcm.make_ba_topology(snum, cplx)
-  rtcm.make_testcase(5)
+  rtcm.make_testcase(rnum)
   profile = lineprof(target) do
     puts @res = rtcm.run_testcase
   end
@@ -250,7 +250,7 @@ def test_lineprof(snum = 100, cplx = 2)
 end
 
 ## ツリートポロジの各種パラメータを自動設定し実行
-def test_tree_loop(loops = 100)
+def test_tree_loop(loops = 100, rnum = 5)
   loops = loops.to_i
   # dep_and_fo = [[4, 2], [4, 3], [4, 4], [4, 5], [5, 2], [5, 3], [5, 4], [5, 5]]
   dep_and_fo = []
@@ -275,7 +275,7 @@ def test_tree_loop(loops = 100)
       rputs "##########################"
       rtcm = RTCManagerTest.new
       rtcm.make_tree_topology(dep, fo)
-      rtcm.make_testcase(20)
+      rtcm.make_testcase(rnum)
       puts res = rtcm.run_testcase
       res.each { |each| output.push(each) }
       l += 1
@@ -314,19 +314,19 @@ if __FILE__ == $0
     test_ba_loop(*ARGV[1..8].map(&:to_i))
   when "ba"
     rputs "test_ba is called."
-    test_ba(*ARGV[1..2].map(&:to_i))
+    test_ba(*ARGV[1..3].map(&:to_i))
   when "treeloop"
     rputs "test_tree_loop is called."
-    test_tree_loop(*ARGV[1])
+    test_tree_loop(*ARGV[1..2].map(&:to_i))
   when "tree"
     rputs "test_tree is called."
-    test_tree(*ARGV[1..2].map(&:to_i))
+    test_tree(*ARGV[1..3].map(&:to_i))
   when "lineprof"
     rputs "test_lineprof is called."
     rputs "※このモードでの実行時間はlineprofにより大幅に伸びます"
-    test_lineprof(*ARGV[1..2].map(&:to_i))
+    test_lineprof(*ARGV[1..3].map(&:to_i))
   else
     rputs "test_ba is called."
-    test_ba
+    test_ba(*ARGV[1..3].map(&:to_i))
   end
 end

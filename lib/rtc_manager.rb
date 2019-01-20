@@ -112,7 +112,7 @@ class RTCManager #< Trema::Controller
       route_list = Hash.new() ## 一時的な経路情報格納 {timeslot=>route,,,}
       ## timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除してから探索
       shortest_path = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
-      return false if shortest_path
+      return false unless shortest_path
       ## for hop_diff
       shortest_hop = (shortest_path.size / 2 - 1).to_f
       real_hops = []

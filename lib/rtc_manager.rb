@@ -103,7 +103,7 @@ class RTCManager #< Trema::Controller
           end
         end
         add_period(rtc.period)
-        Path.create(route, @message, rtc) ## for test
+        # Path.create(route, @message, rtc) ## for test
       else
         puts "ホスト未登録もしくは到達不可能"
         return false
@@ -111,18 +111,25 @@ class RTCManager #< Trema::Controller
     else ## 既存のrtcがある場合
       route_list = Hash.new() ## 一時的な経路情報格納 {timeslot=>route,,,}
       ## timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除してから探索
+      shortest_path = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
+      return false if shortest_path
       ## for hop_diff
-      shortest_hop = (@path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac).size / 2 - 1).to_f
+      shortest_hop = (shortest_path.size / 2 - 1).to_f
       real_hops = []
       shortest_hops = []
       @tmp_timeslot_table.each do |timeslot, exist_rtcs|
         print "timeslot #{timeslot}: "
         if ((timeslot - initial_phase) % rtc.period == 0)
-          if (@graph_table[timeslot][rtc.destination_mac].empty?) ## ホスト未登録だとfalse
-            rputs "ホスト未登録"
-            return false
+          ## タイムスロット内に既存のRTCタスクがない場合はダイクストラの結果を使い回す
+          if exist_rtcs.size == 0
+            route = shortest_path
+          else
+            if (@graph_table[timeslot][rtc.destination_mac].empty?) ## ホスト未登録だとfalse
+              rputs "ホスト未登録"
+              return false
+            end
+            route = Dijkstra.new(@graph_table[timeslot]).run(rtc.source_mac, rtc.destination_mac)
           end
-          route = Dijkstra.new(@graph_table[timeslot]).run(rtc.source_mac, rtc.destination_mac)
           @cdi += 1.0 ## for test
           if (route)
             puts "到達可能"
@@ -148,7 +155,7 @@ class RTCManager #< Trema::Controller
       add_period(rtc.period) ## period_listの更新
       ## @timeslot_tableに対しroute_listに従ってrtcを追加
       route_list.each do |key, array|
-        Path.create(array, @message, rtc)  ## for test
+        # Path.create(array, @message, rtc)  ## for test
         tmp_rtc = rtc.clone
         tmp_rtc.setSchedule(initial_phase, array)
         @timeslot_table[key].push(tmp_rtc)

@@ -251,7 +251,6 @@ end
 
 ## ツリートポロジの各種パラメータを自動設定し実行
 def test_tree_loop(loops = 100, rnum = 5)
-  loops = loops.to_i
   # dep_and_fo = [[4, 2], [4, 3], [4, 4], [4, 5], [5, 2], [5, 3], [5, 4], [5, 5]]
   dep_and_fo = []
   for d in Range.new(1, 7)
@@ -285,11 +284,11 @@ def test_tree_loop(loops = 100, rnum = 5)
 end
 
 ## ツリートポロジの単体実行
-def test_tree(depth = 4, fanout = 4)
+def test_tree(depth = 4, fanout = 4,rnum=5)
   rputs "depth: #{depth}, fanout: #{fanout} (numOfSwitch: #{get_tree_snum(depth, fanout)})"
   rtcm = RTCManagerTest.new
   rtcm.make_tree_topology(depth, fanout)
-  rtcm.make_testcase(5)
+  rtcm.make_testcase(rnum)
   puts rtcm.run_testcase
 end
 

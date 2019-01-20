@@ -224,7 +224,7 @@ end
 
 ## BAモデルトポロジの単体実行
 def test_ba(snum = 100, cplx = 2, rnum = 5)
-  rputs "snum: #{snum}, cplx: #{cplx}"
+  rputs "snum: #{snum}, cplx: #{cplx}, rnum: #{rnum}"
   rtcm = RTCManagerTest.new
   rtcm.make_ba_topology(snum, cplx)
   rtcm.make_testcase(rnum)
@@ -233,7 +233,7 @@ end
 
 ## ソースコードの行毎の実行時間を計測・ボトルネックとなる箇所を出力
 def test_lineprof(snum = 100, cplx = 2, rnum = 5)
-  rputs "snum: #{snum}, cplx: #{cplx}"
+  rputs "snum: #{snum}, cplx: #{cplx}, rnum: #{rnum}"
   require "rblineprof"
   require "rblineprof-report"
   target = /#{Dir.pwd}\/./
@@ -261,7 +261,7 @@ def test_tree_loop(loops = 100, rnum = 5)
     end
   end
   rputs "dep_and_fo: #{dep_and_fo}"
-  rputs "loops: #{loops}"
+  rputs "rnum: #{rnum}, loops: #{loops}"
   #rputs "depth_min: #{dep_min}, depth_max: #{dep_max}, fanout_min: #{fo_min}, fanout_max: #{fo_max}, loops: #{loops}"
   output = []
   dep_and_fo.each do |dep, fo|
@@ -284,8 +284,8 @@ def test_tree_loop(loops = 100, rnum = 5)
 end
 
 ## ツリートポロジの単体実行
-def test_tree(depth = 4, fanout = 4,rnum=5)
-  rputs "depth: #{depth}, fanout: #{fanout} (numOfSwitch: #{get_tree_snum(depth, fanout)})"
+def test_tree(depth = 4, fanout = 4, rnum = 5)
+  rputs "depth: #{depth}, fanout: #{fanout}, rnum: #{rnum} (numOfSwitch: #{get_tree_snum(depth, fanout)})"
   rtcm = RTCManagerTest.new
   rtcm.make_tree_topology(depth, fanout)
   rtcm.make_testcase(rnum)

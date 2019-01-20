@@ -251,7 +251,16 @@ end
 
 ## ツリートポロジの各種パラメータを自動設定し実行
 def test_tree_loop(loops = 100)
-  dep_and_fo = [[4, 2], [4, 3], [4, 4], [4, 5], [5, 2], [5, 3], [5, 4], [5, 5]]
+  loops = loops.to_i
+  # dep_and_fo = [[4, 2], [4, 3], [4, 4], [4, 5], [5, 2], [5, 3], [5, 4], [5, 5]]
+  dep_and_fo = []
+  for d in Range.new(1, 7)
+    for f in Range.new(2, 7)
+      snum = get_tree_snum(d, f)
+      next if snum <= 40 || snum >= 300
+      dep_and_fo.push([d, f])
+    end
+  end
   rputs "dep_and_fo: #{dep_and_fo}"
   rputs "loops: #{loops}"
   #rputs "depth_min: #{dep_min}, depth_max: #{dep_max}, fanout_min: #{fo_min}, fanout_max: #{fo_max}, loops: #{loops}"
@@ -266,7 +275,7 @@ def test_tree_loop(loops = 100)
       rputs "##########################"
       rtcm = RTCManagerTest.new
       rtcm.make_tree_topology(dep, fo)
-      rtcm.make_testcase(5)
+      rtcm.make_testcase(20)
       puts res = rtcm.run_testcase
       res.each { |each| output.push(each) }
       l += 1
@@ -308,8 +317,7 @@ if __FILE__ == $0
     test_ba(*ARGV[1..2].map(&:to_i))
   when "treeloop"
     rputs "test_tree_loop is called."
-    ARGV[1] = 100 unless ARGV[1]
-    test_tree_loop(ARGV[1].to_i)
+    test_tree_loop(*ARGV[1])
   when "tree"
     rputs "test_tree is called."
     test_tree(*ARGV[1..2].map(&:to_i))

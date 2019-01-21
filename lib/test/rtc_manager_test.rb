@@ -53,17 +53,11 @@ class RTCManagerTest
       end
     end
     @numOfSwitch = node
-    ## 最も若いノードにそれぞれfanout個のホストを付加(廃止)
-    #   hnode = 0
-    #   for c in child
-    #     @fanout.times do
-    #       hnode += 1
-    #       mac_address = "mac" + hnode.to_s
-    #       puts "add link: #{c} to host#{hnode.to_s}"
-    #     end
-    #   end
+    ## 最も若いノードにそれぞれfanout個のホストを付加
+    make_link
+    make_tree_host
     ## 最若ノードのみでなく全てのノードにホストを付加する(ツリーの定義にあっているのか？)
-    make_link_and_make_host
+    # make_link_and_make_host
   end
 
   ## フルメッシュトポロジを生成
@@ -90,14 +84,20 @@ class RTCManagerTest
   end
 
   ## 指定回数分の実時間通信要求を生成
-  def make_testcase(numOfReq)
+  def make_testcase(numOfReq, hostRange = Range.new(1, @numOfSwitch))
     @numOfReq = numOfReq.to_i
     ## 重複しないようにnum回分のsrc,dstをランダムに選択(periodは重複可)
     @srcList = []
     @dstList = []
     @periodList = []
-    l = Array.new(@numOfSwitch) { |index| index + 1 }
-    popMax = @numOfSwitch
+    # l = Array.new(@numOfSwitch) { |index| index + 1 }
+    l = []
+    for i in hostRange
+      l.push(i)
+    end
+    # puts "l is #{l}"
+    # popMax = @numOfSwitch
+    popMax = l.size
     @numOfReq.times do
       @srcList.push("h" + (l.delete_at(rand(popMax))).to_s)
       popMax -= 1
@@ -151,14 +151,32 @@ class RTCManagerTest
     ## 命名規則
     ## dpid:1において、dpid:2へのリンクで使用するポートは0x1:2
     ## またホストのMACアドレスは"h1"、ホストへのリンクで使用するポートは0x1:1
+    make_link
+    for n in Range.new(1, @numOfSwitch)
+      @rtc_manager.add_port(Topology::Port.new(n, n), @topology)
+      @rtc_manager.add_host("h" + n.to_s, Topology::Port.new(n, n), @topology) ## 本来はPio::Mac.new("11:11:11:11:11:11") だが簡略化
+    end
+  end
+
+  def make_link
     @edges.each do |src, dst|
       @rtc_manager.add_port(Topology::Port.new(src, dst), @topology)
       @rtc_manager.add_port(Topology::Port.new(dst, src), @topology)
       @rtc_manager.add_link(Topology::Port.new(src, dst), Topology::Port.new(dst, src), @topology)
     end
-    for n in Range.new(1, @numOfSwitch)
-      @rtc_manager.add_port(Topology::Port.new(n, n), @topology)
-      @rtc_manager.add_host("h" + n.to_s, Topology::Port.new(n, n), @topology) ## 本来はPio::Mac.new("11:11:11:11:11:11") だが簡略化
+  end
+
+  def make_tree_host
+    youngest_right = @numOfSwitch
+    youngest_left = youngest_right - @fanout ** (@depth - 1) + 1
+    hst = youngest_right + 1 ## 最左にあるホスト
+    for sw in Range.new(youngest_left, youngest_right)
+      @fanout.times do
+        @rtc_manager.add_port(Topology::Port.new(sw, hst), @topology)
+        @rtc_manager.add_host("h" + hst.to_s, Topology::Port.new(sw, hst), @topology)
+        ## 本来はPio::Mac.new("11:11:11:11:11:11") だが簡略化
+        hst += 1
+      end
     end
   end
 
@@ -253,11 +271,14 @@ end
 def test_tree_loop(loops = 100, rnum = 5)
   # dep_and_fo = [[4, 2], [4, 3], [4, 4], [4, 5], [5, 2], [5, 3], [5, 4], [5, 5]]
   dep_and_fo = []
-  for d in Range.new(1, 7)
+  for d in Range.new(3, 7)
     for f in Range.new(2, 7)
       snum = get_tree_snum(d, f)
-      next if snum <= 40 || snum >= 300
+      hnum = get_tree_hnum(d, f)
+      next if hnum < rnum
+      next if snum + hnum >= 260
       dep_and_fo.push([d, f])
+      # snums.push(snum + hnum)
     end
   end
   rputs "dep_and_fo: #{dep_and_fo}"
@@ -274,7 +295,9 @@ def test_tree_loop(loops = 100, rnum = 5)
       rputs "##########################"
       rtcm = RTCManagerTest.new
       rtcm.make_tree_topology(dep, fo)
-      rtcm.make_testcase(rnum)
+      hst_left = get_tree_snum(dep, fo) + 1
+      hst_right = hst_left + fo ** dep - 1
+      rtcm.make_testcase(rnum, Range.new(hst_left, hst_right))
       puts res = rtcm.run_testcase
       res.each { |each| output.push(each) }
       l += 1
@@ -288,7 +311,9 @@ def test_tree(depth = 4, fanout = 4, rnum = 5)
   rputs "depth: #{depth}, fanout: #{fanout}, rnum: #{rnum} (numOfSwitch: #{get_tree_snum(depth, fanout)})"
   rtcm = RTCManagerTest.new
   rtcm.make_tree_topology(depth, fanout)
-  rtcm.make_testcase(rnum)
+  hst_left = get_tree_snum(depth, fanout) + 1
+  hst_right = hst_left + fanout ** depth - 1
+  rtcm.make_testcase(rnum, Range.new(hst_left, hst_right))
   puts rtcm.run_testcase
 end
 
@@ -301,6 +326,13 @@ def get_tree_snum(dep, fo)
     oya *= fo
   end
   puts "depth: #{dep}, fanout: #{fo} =>> #{res}"
+  return res
+end
+
+## ツリートポロジのホスト数の計算
+def get_tree_hnum(dep, fo)
+  res = fo ** dep
+  puts "depth: #{dep}, fanout: #{fo} =>> hnum = #{res}"
   return res
 end
 

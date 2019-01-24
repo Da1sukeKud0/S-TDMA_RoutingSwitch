@@ -35,4 +35,5 @@ nohup.out
 /lib/GRTAGS
 /lib/GTAGS
 /lib/HTML
-lib/test/test.rb
+lib/test/tree_test.rb
+lib/test/cdi_test.rb

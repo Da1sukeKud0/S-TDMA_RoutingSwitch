@@ -1,6 +1,4 @@
-# Finds shortest path.
 class Dijkstra
-  # Graph node
   class Node
     attr_reader :name
     attr_reader :neighbors
@@ -26,7 +24,6 @@ class Dijkstra
     end
   end
 
-  # Sorted list.
   # TODO: Replace with heap.
   class SortedArray
     def initialize(array)
@@ -64,8 +61,6 @@ class Dijkstra
     end
   end
 
-  # This method smells of :reek:FeatureEnvy but ignores them
-  # This method smells of :reek:DuplicateMethodCall but ignores them
   def path_to(goal)
     [find(goal, @all)].tap do |result|
       result.unshift result.first.prev while result.first.prev

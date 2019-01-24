@@ -105,7 +105,7 @@ class JsonHelper:
         xval = []
         yval = []
         # エラーバー
-        err = []
+        stderr = []
         errmin = []
         errmax = []
         # 平均値化
@@ -114,11 +114,10 @@ class JsonHelper:
             print("key: " + str(k) + ", ave: " + str(ave))
             xval.append(k)
             yval.append(ave)
-            # err.append(self.__calculate_std(v))
-            # err.append(self.__calculate_maxmin(v))
+            stderr.append(self.__calculate_std(v))
             errmin.append(ave - min(v))
             errmax.append(max(v) - ave)
-        err = [errmin, errmax]
+        maxminerr = [errmin, errmax]
         # 棒グラフ・点グラフ・エラーバーの設定
         if self.target == "tf":
             # plot = pyplot.bar(xval, yval, yerr=err, color=color, label=label)
@@ -130,8 +129,8 @@ class JsonHelper:
             # pyplot.yticks([50, 60, 70, 80, 90, 100])
             # pyplot.yticks(range(80, 101, 2))
         else:
-            # pyplot.errorbar(xval, yval, yerr=err,
-            #                fmt="none", ecolor="lightgray")
+            pyplot.errorbar(xval, yval, yerr=stderr,
+                            fmt="none", ecolor="lightgray")
             yval2 = [sum(yval[:i]) for i in range(len(yval))]
             plot = pyplot.plot(xval, yval, self.plotmode,
                                markersize=3, color=color, label=label, marker="o")
@@ -149,21 +148,27 @@ class JsonHelper:
         # 凡例の設定
         if self.subeach is not None:
             pyplot.legend(title=self.__getLabel(
-                self.subeach), prop=fp, ncol=2)
+                self.subeach), prop=fp, ncol=2)  # , loc="upper left")
         # ラベルの設定
         pyplot.ylabel(self.__getLabel(self.target),
                       fontproperties=fp, fontsize="larger")
         pyplot.xlabel(self.__getLabel(self.each),
                       fontproperties=fp, fontsize="larger")
-        # x軸メモリの設定
-        # pyplot.xticks(fontsize="x-large")
-        # pyplot.yticks(fontsize="x-large")
+        # x,y軸メモリの個別設定
         if (self.each == "lnum") and (len(xval) >= 10):
             pass
         elif (self.each == "snum") and ((len(xval) >= 10) or (self.get_topotype() == "tree")):
             pass
         elif (self.each == "v_dijk"):
             pass
+        elif (self.get_topotype() == "tree") and (self.target == "time"):
+            if (self.each == "turn"):
+                pyplot.yticks([0.0, 0.5, 1.0, 1.5, 2.0, 2.5])
+            elif (self.each == "cdi"):
+                pyplot.yticks([int(x) for x in range(0, 20, 2)])
+            elif (self.each == "lnum"):
+                # pyplot.xticks(range(50, 251, 50))
+                pass
         else:
             pyplot.xticks(xval)  # , fontsize="x-large")
         # png, pdf(, show)
@@ -173,11 +178,11 @@ class JsonHelper:
         #     return plot
         if close:
             pyplot.savefig("tmp/" + str(self.topotype) + "/" + str(self.target) + "__" +
-                           str(self.each) + self.__exact_to_s() + self.filetail + "." + self.format, bbox_inches='tight')
+                           str(self.each) + self.__exact_to_s() + self.filetail + "_err" + "." + self.format, bbox_inches='tight')
             pyplot.close()
         else:
             pyplot.savefig("tmp/" + str(self.topotype) + "/" + str(self.target) + "__" + str(self.each) + "_" + str(
-                self.subeach) + self.__exact_to_s() + self.filetail + "." + self.format, bbox_inches='tight')
+                self.subeach) + self.__exact_to_s() + self.filetail + "_err" + "." + self.format, bbox_inches='tight')
         return plot
 
     def __get_fit_1d_xval(self, xval, yval):
@@ -328,66 +333,57 @@ if __name__ == '__main__':
     cplx = "cplx"
     dep = "dep"
     fan = "fan"
-    # topo = jh.get_topotype()
-    topo = "grad"
+    topo = jh.get_topotype()
+    # topo = "else"
     if topo == "BA":
-        # dot mode
-        jh.dotplot()
-        jh.sort_by("time", "turn")
-        jh.sort_by("time", "turn", None, snum=100, cplx=2)
-        jh.sort_by("time", "snum")
-        jh.sort_by("time", "snum", None, cplx=2)
-        jh.sort_by("time", "lnum")
-        jh.sort_by("time", "lnum", "turn", snum=100)
-        jh.sort_by("time", "cplx")
+        # jh.sort_by("time", "snum", "turn")  # ba fit
+        # jh.sort_by("time", "lnum", "turn")  # ba fit
+        # jh.sort_by("time", "turn", cplx=2, snum=100)  # ba rnum20
+        # jh.sort_by("cdi", "turn", cplx=2, snum=100)  # ba rnum20
+        # jh.sort_by("hops", "snum", "turn")  # ba
+        # jh.sort_by("hops", "lnum", "turn")  # ba
 
-        jh.sort_by("hop", "turn")
-        jh.sort_by("hop", "turn", None, snum=100, cplx=2)
-        jh.sort_by("hop", "snum")
-        jh.sort_by("hop", "snum", None, cplx=2)
-        jh.sort_by("hop", "lnum")
-        jh.sort_by("hop", "lnum", "turn", snum=100)  # oresen
-        jh.sort_by("hop", "cplx")
-
-        jh.sort_by("hop", "snum", "turn", cplx=2)  # oresen
-        jh.sort_by("hop", "cplx", None, snum=100)
-
-        # oresen mode
         jh.oresenplot()
-        jh.sort_by("hop", "lnum", "turn", snum=100)  # oresen
-        jh.sort_by("hop", "snum", "turn", cplx=2)  # oresen
+        # jh.sort_by("tf", "snum", "turn")  # ba
+        # jh.sort_by("tf", "snum", "cplx")  # ba
+        # jh.sort_by("tf", "turn", "cplx", snum=100)  # ba rnum20
     elif topo == "tree":
         # for tree(増加ホップ数は必ず0)
         # lnumとsnumがほぼ同義
         # dot mode
         jh.dotplot()
-        jh.sort_by("time", "turn")
-        jh.sort_by("time", "snum")
-        jh.sort_by("time", "snum", "fan")
-        jh.sort_by("time", "dep")
-        jh.sort_by("time", "dep", fan=2)
-        jh.sort_by("time", "dep", fan=3)
-        jh.sort_by("time", "fan")
-        jh.sort_by("tf", "snum")
+        # jh.sort_by("time", "snum", "turn")  # tree
+        # jh.sort_by("time", "turn", snum=121)  # tree
+        # jh.sort_by("cdi", "turn", snum=121)  # tree
+        # jh.sort_by("time", "turn")
+        # jh.sort_by("cdi", "turn")
+        # jh.sort_by("time", "turn", snum=259)
+        # jh.sort_by("cdi", "turn", snum=259)
+        # jh.sort_by("time", "snum", "fan")
+        # jh.sort_by("time", "dep")
+        # # jh.sort_by("time", "dep", fan=2)
+        # # jh.sort_by("time", "dep", fan=3)
+        # jh.sort_by("time", "fan")
+
         # oresen mode
         jh.oresenplot()
+        jh.sort_by("tf", "snum", "turn")
+        jh.sort_by("tf", "turn", "lnum")
+        # jh.sort_by("time", "snum", "turn")  # tree
     else:
         jh.dotplot()
-        # jh.sort_by("time", "turn", cplx=2, snum=100)  # ba
-        # jh.sort_by("cdi", "turn", cplx=2, snum=100)  # ba
-        # jh.sort_by("time", "turn")  # tree
-        # jh.sort_by("cdi", "turn")  # tree
-        # jh.sort_by("time", "snum", "turn")  # ba
-        # jh.sort_by("time", "snum", "fan") # tree
         # jh.sort_by("time", "v_dijk", "turn", cplx=2)  # ba?
-        # jh.sort_by("time", "lnum", "turn")  # ba
         # jh.sort_by("hops", "turn", "lnum")  # ba
         # jh.sort_by("hops", "lnum")  # ba
         # jh.sort_by("hops", "turn")  # ba
+        # jh.sort_by("time", "snum", "fan")  # tree
+        # jh.sort_by("time", "turn")  # tree
+        # jh.sort_by("time", "turn", snum=259)  # tree
+        # jh.sort_by("cdi", "turn")  # tree
+        # jh.sort_by("cdi", "turn", snum=259)  # tree
+        # jh.sort_by("tf", "turn", "snum")  # tree
+
         jh.oresenplot()
-        # jh.sort_by("tf", "turn", "snum")  # ba
-        # jh.sort_by("tf", "turn", snum=100)  # ba
-        jh.sort_by("tf", "turn", "cplx", snum=100)  # ba
 
 
 """

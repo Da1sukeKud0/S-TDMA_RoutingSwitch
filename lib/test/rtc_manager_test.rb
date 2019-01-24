@@ -271,11 +271,11 @@ end
 def test_tree_loop(loops = 100, rnum = 5)
   # dep_and_fo = [[4, 2], [4, 3], [4, 4], [4, 5], [5, 2], [5, 3], [5, 4], [5, 5]]
   dep_and_fo = []
-  for d in Range.new(3, 7)
-    for f in Range.new(2, 7)
+  for d in Range.new(3, 6)
+    for f in Range.new(2, 6)
       snum = get_tree_snum(d, f)
       hnum = get_tree_hnum(d, f)
-      next if hnum < rnum
+      next if hnum < rnum * 2
       next if snum + hnum >= 260
       dep_and_fo.push([d, f])
       # snums.push(snum + hnum)

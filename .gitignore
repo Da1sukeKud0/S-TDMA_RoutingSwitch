@@ -22,18 +22,19 @@
 
 # for a library or gem, you might want to ignore these files since the code is
 # intended to run in multiple environments; otherwise, check them in:
-#Gemfile.lock
+# Gemfile.lock
 #.ruby-version
 # .ruby-gemset
 
-# unless supporting rvm < 1.11.0 or doing something fancy, ignore this:
+# local file
 .edges
 .topo*
 nohup.out
-
-/lib/GPATH
-/lib/GRTAGS
-/lib/GTAGS
-/lib/HTML
+auto.sh
+a.out
+other_lang
+lib/test/inline_test.rb
 lib/test/tree_test.rb
 lib/test/cdi_test.rb
+lib/test/test.py
+lib/test/test.rb

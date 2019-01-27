@@ -40,21 +40,21 @@ class RTC(source_mac, destination_mac, period):
 
 
 class RTCManager:  # < Trema::Controller
+    # for test
+    self.cdi = 0
+    # for hop_diff
+    self.shortest_hop = 0
+    self.real_hop = 0
+    self.shortest_hops = 0
+    self.real_hops = 0
+
     def __init__(self):
         # self.path_manager = PathManager.new.tap(&:start)
         self.timeslot_table = {}
         self.period_list = []  # 周期の種類を格納(同じ数値の周期も重複して格納)
-        yputs "RTC Manager started."
+        # yputs "RTC Manager started."
         self.counter = 0  # for test
         # self.tmp_msg = Hash.new ## for test
-
-    # ## for test
-    # attr_reader :cdi
-    # ## for hop_diff
-    # attr_reader :shortest_hop
-    # attr_reader :real_hop
-    # attr_reader :shortest_hops
-    # attr_reader :real_hops
 
     def periodSchedule(self, message, source_mac, destination_mac, period):
         # self.message = message
@@ -62,139 +62,192 @@ class RTCManager:  # < Trema::Controller
         initial_phase = 0  # 初期位相0に設定
         # 既存のRTCが存在する場合はtmp_timeslot_tableを生成
         # 既存のrtcがある場合
-        if not print(all([len(exist_rtcs) == 0 for exist_rtcs in dic.values()]))
+        if not all([len(exist_rtcs) == 0 for exist_rtcs in dic.values()]):
             # 計算用のself.tmp_timeslot_tableにself.timeslot_tableを複製(倍率はadd_period?に従う)
             # また計算用のtmp_graphを生成し複製してself.graph_tableに格納(倍率はadd_period?に従う)
             self.tmp_timeslot_table = {}
             self.graph_table = {}
-            for timeslot, exist_rtcs in self.timeslot_table
+            for timeslot, exist_rtcs in self.timeslot_table.items():
                 # timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除しgraph_tableに格納
                 # Graph::graph(Hash Class)
                 tmp_graph = copy.deepcopy(self.path_manager.graph.graph)
-                if len(exist_rtcs) != 0  # 同一タイムスロット内にrtcが既存
-                    for er in exist_rtcs
+                if len(exist_rtcs) != 0:  # 同一タイムスロット内にrtcが既存
+                    for er in exist_rtcs:
                         # 使用するスイッチ間リンクおよびスイッチ-ホスト間リンクを削除し保持
-                        for s, d in each_slice(er.route[0..-1], 2)
+                        for s, d in each_slice(er.route, 2):
                             tmp_graph[s] -= [d]
                             tmp_graph[d] -= [s]
                 # self.timeslot_tableおよびtmp_graphの複製
-                for i in Range.new(0, add_period?(rtc.period) - 1)
-                  self.tmp_timeslot_table[timeslot + self.lcm *
-                      i] = self.timeslot_table[timeslot].clone
-                   self.graph_table[timeslot + self.lcm * i] = tmp_graph.clone
-            self.tmp_timeslot_table = sort_h(self.tmp_timeslot_table)
+                for i in range(0, self.maybe_add_period(rtc.period)):
+                    self.tmp_timeslot_table[timeslot + self.lcm *
+                                            i] = copy.deepcopy(self.timeslot_table[timeslot])
+                    self.graph_table[timeslot + self.lcm *
+                                     i] = copy.deepcopy(tmp_graph)
+            self.tmp_timeslot_table = sorted(self.tmp_timeslot_table.items())
             # graph_table = sort_h(graph_table)
-            end
         # 0~periodの間でスケジューリング可能な初期位相を探す
-        while (initial_phase < period)
-           if (routeSchedule(rtc, initial_phase))  # スケジューリング可
-              puts ""
-               yputs "スケジューリング可能です"
+        while (initial_phase < period):
+            if (self.routeSchedule(rtc, initial_phase)):  # スケジューリング可
+                # puts ""
+                # yputs "スケジューリング可能です"
                 # puts self.timeslot_table
-                self.timeslot_table.each do | timeslot, exist_rtcs|
-                  puts "in timeslot #{timeslot}:"
-                   exist_rtcs.each do | e|
-                      e.display
+                for timeslot, exist_rtcs in self.timeslot_table.items():
+                    print("in timeslot #{timeslot}:")
+                    for e in exist_rtcs:
+                        print(e)
                 return true
-            else  # スケジューリング不可
-              initial_phase += 1
-        rputs "####################"
-        rputs "####################"
-        rputs "####### false ######"
-        rputs "####################"
-        rputs "####################"
-        return false
+            else:  # スケジューリング不可
+                initial_phase += 1
+                # rputs "####################"
+                # rputs "####################"
+                # rputs "####### false ######"
+                # rputs "####################"
+                # rputs "####################"
+                return false
 
     def routeSchedule(rtc, initial_phase):
-        puts "初期位相 #{initial_phase} で経路探索を開始します"
-        if (self.timeslot_table.all? { | key, each | each.size == 0 }) ##既存のrtcがない場合
-        route = self.path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
-        self.cdi += 1.0  # for test
-        if (route)
-        # for hop_diff
-        hop = (route.size / 2 - 1).to_f
-        self.shortest_hops = hop
-        self.real_hops = hop
-        self.shortest_hop = hop
-        self.real_hop = hop
-        # 使用する各スロットにrtcを格納(経路は全て同じ)
-        rtc.setSchedule(initial_phase, route)
-        for i in Range.new(0, rtc.period - 1)
-        if ((i + initial_phase) % rtc.period == 0)
-        self.timeslot_table[i].push(rtc)
+        # puts "初期位相 #{initial_phase} で経路探索を開始します"
+        if all([len(exist_rtcs) == 0 for exist_rtcs in dic.values()]):  # 既存のrtcがない場合
+            # route = self.path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac) # TODO
+            self.cdi += 1.0  # for test
+            if (route):
+                # for hop_diff
+                hop = (route.size / 2 - 1)*1.0
+                self.shortest_hops = hop
+                self.real_hops = hop
+                self.shortest_hop = hop
+                self.real_hop = hop
+                # 使用する各スロットにrtcを格納(経路は全て同じ)
+                rtc.setSchedule(initial_phase, route)
+                for i in range(0, rtc.period):
+                    if ((i + initial_phase) % rtc.period == 0):
+                        self.timeslot_table[i].push(rtc)
+                    else:
+                        self.timeslot_table[i] = []
+                add_period(rtc.period)
+                # Path.create(route, self.message, rtc) ## for test
+            else:
+                # puts "ホスト未登録もしくは到達不可能"
+                return false
+        else:  # 既存のrtcがある場合
+            route_list = {}  # 一時的な経路情報格納 {timeslot=>route,,,}
+            # timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除してから探索
+            # shortest_path = self.path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac) # TODO
+            if not shortest_path:
+                return false
+            # for hop_diff
+            shortest_hop = (shortest_path.size / 2 - 1)*1.0
+            real_hops = []
+            shortest_hops = []
+            for timeslot, exist_rtcs in self.tmp_timeslot_table.items():
+                print "timeslot #{timeslot}: "
+                if not ((timeslot - initial_phase) % rtc.period == 0):
+                    continue
+                # タイムスロット内に既存のRTCタスクがない場合はダイクストラの結果を使い回す
+                if len(exist_rtcs) == 0:
+                    route = shortest_path
+                else:
+                    # ホスト未登録だとfalse # TODO
+                    # if (self.graph_table[timeslot][rtc.destination_mac].empty?):
+                    # rputs "ホスト未登録"
+                    # return false
+                    # route = Dijkstra.new(self.graph_table[timeslot]).run(
+                    #     rtc.source_mac, rtc.destination_mac) # TODO
+                    pass
+                self.cdi += 1.0  # for test
+                if (route):
+                    # puts "到達可能" # TODO
+                    # route = route.reject { | each | each.is_a? Integer }
+                    # route_list[timeslot] = route
+                    # for hop_diff
+                    real_hop = (route.size / 2 - 1)*1.0
+                    real_hops.push(real_hop)
+                    shortest_hops.push(shortest_hop)
+                else:  # 到達可能な経路なし
+                    # puts "到達不可能"
+                    return false
+            # (ここでfalseでない時点で)使用する全てのタイムスロットでルーティングが可能
+            # for hop_diff
+            self.shortest_hops = shortest_hops
+            self.real_hops = real_hops
+            self.shortest_hop = shortest_hop
+            # 平均ホップ数
+            self.real_hop = (real_hops.inject(: +)*1.0) / (real_hops.size*1.0)
+            self.timeslot_table = copy.deepcopy(
+                self.tmp_timeslot_table)  # tmp_timeslot_tableを反映
+            self.add_period(rtc.period)  # period_listの更新
+            # self.timeslot_tableに対しroute_listに従ってrtcを追加
+            for key, array in route_list.items():
+                # Path.create(array, self.message, rtc)  ## for test
+                tmp_rtc = copy.deepcopy(rtc)
+                tmp_rtc.setSchedule(initial_phase, array)
+                self.timeslot_table[key].push(tmp_rtc)
+            end
+            self.timeslot_table = sort_h(self.timeslot_table)
+            end
+            return true
+            end
+
+    # self.period_listに新規periodを追加した場合の
+    # self.timeslot_tableの倍率を返す関数
+    def maybe_add_period(self, period):
+        # puts "plist is #{self.period_list}"
+        if (len(self.period_list) == 0):
+            self.lcm = period
+            # puts "lcm is #{self.lcm}"
+            res = 1
+        else:
+            old_lcm = self.lcm
+            res = (self.lcm.lcm(period)) / old_lcm
+            # puts "#{res} bai !"
+        return res
+
+    # self.period_listに新規periodを追加する関数
+    def add_period(self, period):
+        self.period_list.push(period)
+        # puts "plist is #{self.period_list}"
+        if (len(self.period_list) == 1):
+            self.lcm = period
+            res = 1
         else
-        self.timeslot_table[i] = []
-        end
-        end
-        add_period(rtc.period)
-        # Path.create(route, self.message, rtc) ## for test
-        else
-        puts "ホスト未登録もしくは到達不可能"
-        return false
-        end
-        else  # 既存のrtcがある場合
-        route_list = Hash.new()  # 一時的な経路情報格納 {timeslot=>route,,,}
-        # timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除してから探索
-        shortest_path = self.path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
-        return false unless shortest_path
-        # for hop_diff
-        shortest_hop = (shortest_path.size / 2 - 1).to_f
-        real_hops = []
-        shortest_hops = []
-        self.tmp_timeslot_table.each do | timeslot, exist_rtcs|
-        print "timeslot #{timeslot}: "
-        if ((timeslot - initial_phase) % rtc.period == 0)
-        # タイムスロット内に既存のRTCタスクがない場合はダイクストラの結果を使い回す
-        if exist_rtcs.size == 0
-        route = shortest_path
-        else
-        # ホスト未登録だとfalse
-        if (self.graph_table[timeslot][rtc.destination_mac].empty?)
-        rputs "ホスト未登録"
-        return false
-        end
-        route = Dijkstra.new(self.graph_table[timeslot]).run(
-            rtc.source_mac, rtc.destination_mac)
-        end
-        self.cdi += 1.0  # for test
-        if (route)
-        puts "到達可能"
-        route = route.reject { | each | each.is_a? Integer }
-        route_list[timeslot] = route
-        # for hop_diff
-        real_hop = (route.size / 2 - 1).to_f
-        real_hops.push(real_hop)
-        shortest_hops.push(shortest_hop)
-        else  # 到達可能な経路なし
-        puts "到達不可能"
-        return false
-        end
-        end
-        end
-        # (ここでfalseでない時点で)使用する全てのタイムスロットでルーティングが可能
-        # for hop_diff
-        self.shortest_hops = shortest_hops
-        self.real_hops = real_hops
-        self.shortest_hop = shortest_hop
-        self.real_hop = real_hops.inject(: +).to_f / real_hops.size.to_f  # 平均ホップ数
-        self.timeslot_table = self.tmp_timeslot_table.clone  # tmp_timeslot_tableを反映
-        add_period(rtc.period)  # period_listの更新
-        # self.timeslot_tableに対しroute_listに従ってrtcを追加
-        route_list.each do | key, array|
-        # Path.create(array, self.message, rtc)  ## for test
-        tmp_rtc = rtc.clone
-        tmp_rtc.setSchedule(initial_phase, array)
-        self.timeslot_table[key].push(tmp_rtc)
-        end
-        self.timeslot_table = sort_h(self.timeslot_table)
-        end
-        return true
-        end
+        old_lcm = self.lcm
+        res = calc_lcm / old_lcm
+        return res
+
+    # self.period_listから指定したperiodを1つだけ削除する関数
+    def del_period(self, period):
+        for i in Range.new(0, len(self.period_list) - 1):
+            if (self.period_list[i] == period):
+                self.period_list.delete_at(i)
+                break
+        # puts "plist is #{self.period_list}"
+        if (len(self.period_list) == 0):
+            self.lcm = 0
+            # puts "timeslot all delete"
+        else:
+            old_lcm = self.lcm
+            # puts "minus #{old_lcm / calc_lcm} bai !"
+
+    # add_period, del_period
+    # self.period_listの要素全ての最小公倍数を返す関数
+    def calc_lcm(self)
+    if len(self.period_list) == 0:
+        # puts "0"
+        return 0
+    elif len(self.period_list) == 1:
+        # puts self.period_list[0]
+        return self.period_list[0]
+    else:
+        self.lcm = 1
+        for i in Range.new(0, len(self.period_list) - 1):
+            self.lcm = self.lcm.lcm(self.period_list[i])
+        # puts "lcm is #{self.lcm}"
+        return self.lcm
 
 # RTCManagerTestもしくはRTCmanager.packet_inからスケジューリング処理を呼び出す際のアクセサ
 
 
-def scheduling?(source_mac, destination_mac, period, message = "packet_in message Class")
+def scheduling?(source_mac, destination_mac, period, message="packet_in message Class")
 
 
 puts ""
@@ -246,89 +299,6 @@ end
 
 private
 
-# self.period_listに新規periodを追加する関数
-
-
-def add_period(period)
-
-
-self.period_list.push(period)
-# puts "plist is #{self.period_list}"
-if (self.period_list.size == 1)
-self.lcm = period
-return 1
-else
-old_lcm = self.lcm
-res = calc_lcm / old_lcm
-return res
-end
-end
-
-# self.period_listに新規periodを追加した場合の
-# self.timeslot_tableの倍率を返す関数
-
-
-def add_period?(period)
-
-
-# puts "plist is #{self.period_list}"
-if (self.period_list.size == 0)
-self.lcm = period
-# puts "lcm is #{self.lcm}"
-return 1
-else
-old_lcm = self.lcm
-res = (self.lcm.lcm(period)) / old_lcm
-# puts "#{res} bai !"
-end
-return res
-end
-
-# self.period_listから指定したperiodを1つだけ削除する関数
-
-
-def del_period(period)
-
-
-for i in Range.new(0, self.period_list.size - 1)
-if (self.period_list[i] == period)
-self.period_list.delete_at(i)
-break
-end
-end
-# puts "plist is #{self.period_list}"
-if (self.period_list.size == 0)
-self.lcm = 0
-puts "timeslot all delete"
-else
-old_lcm = self.lcm
-# puts "minus #{old_lcm / calc_lcm} bai !"
-end
-end
-
-# add_period, del_period
-# self.period_listの要素全ての最小公倍数を返す関数
-
-
-def calc_lcm
-
-
-if self.period_list.size == 0
-puts "0"
-return 0
-elsif(self.period_list.size == 1)
-# puts self.period_list[0]
-return self.period_list[0]
-else
-self.lcm = 1
-for i in Range.new(0, self.period_list.size - 1)
-self.lcm = self.lcm.lcm(self.period_list[i])
-end
-# puts "lcm is #{self.lcm}"
-return self.lcm
-end
-end
-end
 
 # sort(Hash): Ruby1.9で廃止されたらしい
 

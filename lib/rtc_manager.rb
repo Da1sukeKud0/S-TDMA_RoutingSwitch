@@ -8,14 +8,14 @@ require_relative "cputs"
 ## RTCManager
 ## 実時間通信要求に対し経路スケジューリングおよび時刻スケジューリングを行う
 ## RoutingSwitch版
-class RTCManager #< Trema::Controller
+class RTCManager # < Trema::Controller
   def start
     @path_manager = PathManager.new.tap(&:start)
     @timeslot_table = Hash.new { |hash, key| hash[key] = [] } ## {timeslot=>[rtc,rtc,,,], ,,}
     @period_list = [] ## 周期の種類を格納(同じ数値の周期も重複して格納)
     yputs "RTC Manager started."
     @counter = 0 ## for test
-    @tmp_msg = Hash.new ## for test
+    @tmp_msg = {} ## for test
   end
 
   ## for test
@@ -31,17 +31,17 @@ class RTCManager #< Trema::Controller
     rtc = RTC.new(source_mac, destination_mac, period)
     initial_phase = 0 ##初期位相0に設定
     ## 既存のRTCが存在する場合はtmp_timeslot_tableを生成
-    unless (@timeslot_table.all? { |key, each| each.size == 0 }) ##既存のrtcがある場合
+    unless @timeslot_table.all? { |_key, each| each.size == 0 } ##既存のrtcがある場合
       ## 計算用の@tmp_timeslot_tableに@timeslot_tableを複製(倍率はadd_period?に従う)
       ## また計算用のtmp_graphを生成し複製して@graph_tableに格納(倍率はadd_period?に従う)
       @tmp_timeslot_table = Hash.new { |hash, key| hash[key] = [] }
-      @graph_table = Hash.new
+      @graph_table = {}
       @timeslot_table.each do |timeslot, exist_rtcs|
         ## timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除しgraph_tableに格納
         tmp_graph = @path_manager.graph.graph.clone ## Graph::graph(Hash Class)
         if (exist_rtcs.size != 0) ## 同一タイムスロット内にrtcが既存
           exist_rtcs.each do |er|
-            er.route[0..-1].each_slice(2) do |s, d| ## 使用するスイッチ間リンクおよびスイッチ-ホスト間リンクを削除し保持
+            er.route[0..-1].each_slice(2) do |s, d| ## 使用するスイッチ間リンクおよびスイッチ-ホスト間リンクを削除し保持 ## route[0..-1]が思ったより何もしてない
               tmp_graph[s] -= [d]
               tmp_graph[d] -= [s]
             end
@@ -57,8 +57,8 @@ class RTCManager #< Trema::Controller
       # graph_table = sort_h(graph_table)
     end
     ## 0~periodの間でスケジューリング可能な初期位相を探す
-    while (initial_phase < period)
-      if (routeSchedule(rtc, initial_phase)) ##スケジューリング可
+    while initial_phase < period
+      if routeSchedule(rtc, initial_phase) ##スケジューリング可
         puts ""
         yputs "スケジューリング可能です"
         # puts @timeslot_table
@@ -69,7 +69,7 @@ class RTCManager #< Trema::Controller
           end
         end
         return true
-      else ##スケジューリング不可
+      else # #スケジューリング不可
         initial_phase += 1
       end
     end
@@ -83,10 +83,10 @@ class RTCManager #< Trema::Controller
 
   def routeSchedule(rtc, initial_phase)
     puts "初期位相 #{initial_phase} で経路探索を開始します"
-    if (@timeslot_table.all? { |key, each| each.size == 0 }) ##既存のrtcがない場合
+    if @timeslot_table.all? { |_key, each| each.size == 0 } ##既存のrtcがない場合
       route = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
       @cdi += 1.0 ## for test
-      if (route)
+      if route
         ## for hop_diff
         hop = (route.size / 2 - 1).to_f
         @shortest_hops = hop
@@ -96,7 +96,7 @@ class RTCManager #< Trema::Controller
         ## 使用する各スロットにrtcを格納(経路は全て同じ)
         rtc.setSchedule(initial_phase, route)
         for i in Range.new(0, rtc.period - 1)
-          if ((i + initial_phase) % rtc.period == 0)
+          if (i + initial_phase) % rtc.period == 0
             @timeslot_table[i].push(rtc)
           else
             @timeslot_table[i] = []
@@ -109,7 +109,7 @@ class RTCManager #< Trema::Controller
         return false
       end
     else ## 既存のrtcがある場合
-      route_list = Hash.new() ## 一時的な経路情報格納 {timeslot=>route,,,}
+      route_list = {} ## 一時的な経路情報格納 {timeslot=>route,,,}
       ## timeslotが被るrtcがあれば抽出し、それらの使用するスイッチ間リンクを削除してから探索
       shortest_path = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
       return false unless shortest_path
@@ -119,30 +119,28 @@ class RTCManager #< Trema::Controller
       shortest_hops = []
       @tmp_timeslot_table.each do |timeslot, exist_rtcs|
         print "timeslot #{timeslot}: "
-        if ((timeslot - initial_phase) % rtc.period == 0)
-          ## タイムスロット内に既存のRTCタスクがない場合はダイクストラの結果を使い回す
-          if exist_rtcs.size == 0
-            route = shortest_path
-          else
-            if (@graph_table[timeslot][rtc.destination_mac].empty?) ## ホスト未登録だとfalse
-              rputs "ホスト未登録"
-              return false
-            end
-            route = Dijkstra.new(@graph_table[timeslot]).run(rtc.source_mac, rtc.destination_mac)
-          end
-          @cdi += 1.0 ## for test
-          if (route)
-            puts "到達可能"
-            route = route.reject { |each| each.is_a? Integer }
-            route_list[timeslot] = route
-            ## for hop_diff
-            real_hop = (route.size / 2 - 1).to_f
-            real_hops.push(real_hop)
-            shortest_hops.push(shortest_hop)
-          else ## 到達可能な経路なし
-            puts "到達不可能"
+        next unless (timeslot - initial_phase) % rtc.period == 0
+        if exist_rtcs.size == 0
+          route = shortest_path
+        else
+          if @graph_table[timeslot][rtc.destination_mac].empty? ## ホスト未登録だとfalse
+            rputs "ホスト未登録"
             return false
           end
+          route = Dijkstra.new(@graph_table[timeslot]).run(rtc.source_mac, rtc.destination_mac)
+        end
+        @cdi += 1.0 ## for test
+        if route
+          puts "到達可能"
+          route = route.reject { |each| each.is_a? Integer }
+          route_list[timeslot] = route
+          ## for hop_diff
+          real_hop = (route.size / 2 - 1).to_f
+          real_hops.push(real_hop)
+          shortest_hops.push(shortest_hop)
+        else ## 到達可能な経路なし
+          puts "到達不可能"
+          return false
         end
       end
       ## (ここでfalseでない時点で)使用する全てのタイムスロットでルーティングが可能
@@ -168,7 +166,7 @@ class RTCManager #< Trema::Controller
   ## 以下は@path_managerへのアクセサ
   # This method smells of :reek:FeatureEnvy but ignores them
   def packet_in(_dpid, message, mode = "shared")
-    if (mode == "shared")
+    if mode == "shared"
       gputs "packet_in is called (shared)"
       @path_manager.packet_in(_dpid, message, mode)
       # for p in Path.all
@@ -184,7 +182,7 @@ class RTCManager #< Trema::Controller
     @counter += 1
     @tmp_msg[@counter] = message
     # ## RTCManagerのテストは以下に記述
-    if (@counter == 6)
+    if @counter == 6
       yputs "Test started."
       puts ""
       scheduling?(@tmp_msg[1].source_mac, @tmp_msg[1].destination_mac, 2, @tmp_msg[1])
@@ -234,7 +232,7 @@ class RTCManager #< Trema::Controller
   def add_period(period)
     @period_list.push(period)
     # puts "plist is #{@period_list}"
-    if (@period_list.size == 1)
+    if @period_list.size == 1
       @lcm = period
       return 1
     else
@@ -248,7 +246,7 @@ class RTCManager #< Trema::Controller
   ## @timeslot_tableの倍率を返す関数
   def add_period?(period)
     # puts "plist is #{@period_list}"
-    if (@period_list.size == 0)
+    if @period_list.size == 0
       @lcm = period
       # puts "lcm is #{@lcm}"
       return 1
@@ -263,13 +261,13 @@ class RTCManager #< Trema::Controller
   ## @period_listから指定したperiodを1つだけ削除する関数
   def del_period(period)
     for i in Range.new(0, @period_list.size - 1)
-      if (@period_list[i] == period)
+      if @period_list[i] == period
         @period_list.delete_at(i)
         break
       end
     end
     # puts "plist is #{@period_list}"
-    if (@period_list.size == 0)
+    if @period_list.size == 0
       @lcm = 0
       puts "timeslot all delete"
     else
@@ -284,7 +282,7 @@ class RTCManager #< Trema::Controller
     if @period_list.size == 0
       puts "0"
       return 0
-    elsif (@period_list.size == 1)
+    elsif @period_list.size == 1
       # puts @period_list[0]
       return @period_list[0]
     else

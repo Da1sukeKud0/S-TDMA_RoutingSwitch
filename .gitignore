@@ -38,3 +38,10 @@ lib/test/tree_test.rb
 lib/test/cdi_test.rb
 lib/test/test.py
 lib/test/test.rb
+lib/dijkstra.py
+lib/test/*.cpp
+lib/test/*.c
+lib/test/__init__.py
+lib/rtc_manager.py
+lib/test/__init__.py
+lib/test/dijkstra.py

@@ -24,6 +24,7 @@ class TopologyController < Trema::Controller
   end
 
   def features_reply(dpid, features_reply)
+    #puts features_reply.inspect
     @topology.add_switch dpid, features_reply.physical_ports.select(&:up?)
   end
 

@@ -45,3 +45,4 @@ lib/test/__init__.py
 lib/rtc_manager.py
 lib/test/__init__.py
 lib/test/dijkstra.py
+lib/test/barabasi_albert_graph.pyc

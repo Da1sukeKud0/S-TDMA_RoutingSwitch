@@ -129,11 +129,13 @@ class JsonHelper:
             # pyplot.yticks([50, 60, 70, 80, 90, 100])
             # pyplot.yticks(range(80, 101, 2))
         else:
-            pyplot.errorbar(xval, yval, yerr=stderr,
-                            fmt="none", ecolor="lightgray")
+            # pyplot.errorbar(xval, yval, yerr=maxminerr,
+                            # fmt="none", ecolor="lightgray")
             yval2 = [sum(yval[:i]) for i in range(len(yval))]
             plot = pyplot.plot(xval, yval, self.plotmode,
                                markersize=3, color=color, label=label, marker="o")
+            xval = xval[1:]
+            yval = yval[1:]
             # xval = [self.v_dijkstra(
             #     xval[i], label) for i in range(len(xval))]
             # plot = pyplot.plot(xval, yval, self.plotmode,
@@ -141,6 +143,8 @@ class JsonHelper:
             if (self.target == "cdi"):
                 pass
             # pyplot.yticks(range(0, 20, 2))
+        plot = pyplot.plot(xval, yval)
+        # plot = pyplot.plot(xval, self.__get_fit_ave_xval(xval, yval))
         # plot = pyplot.plot(xval, self.__get_fit_1d_xval(xval, yval))
         # plot = pyplot.plot(xval, self.__get_fit_2d_xval(xval, yval))
         # plot = pyplot.plot(xval, self.__get_fit_3d_xval(xval, yval))
@@ -171,6 +175,7 @@ class JsonHelper:
                 pass
         else:
             pyplot.xticks(xval)  # , fontsize="x-large")
+        # pyplot.xticks(range(1, 6))
         # png, pdf(, show)
         # if self.format == "show":
         #     if close:
@@ -178,12 +183,19 @@ class JsonHelper:
         #     return plot
         if close:
             pyplot.savefig("tmp/" + str(self.topotype) + "/" + str(self.target) + "__" +
-                           str(self.each) + self.__exact_to_s() + self.filetail + "_err" + "." + self.format, bbox_inches='tight')
+                           str(self.each) + self.__exact_to_s() + self.filetail + "." + self.format, bbox_inches='tight')
             pyplot.close()
         else:
             pyplot.savefig("tmp/" + str(self.topotype) + "/" + str(self.target) + "__" + str(self.each) + "_" + str(
-                self.subeach) + self.__exact_to_s() + self.filetail + "_err" + "." + self.format, bbox_inches='tight')
+                self.subeach) + self.__exact_to_s() + self.filetail + "." + self.format, bbox_inches='tight')
         return plot
+
+    def __get_fit_ave_xval(self, xval, yval):
+        ave = sum(yval)/len(yval)
+        arr = []
+        for i in range(10, 101, 5):
+            arr.append(ave)
+        return arr
 
     def __get_fit_1d_xval(self, xval, yval):
         def fit(x, a, b):
@@ -244,6 +256,7 @@ class JsonHelper:
             "lnum": u"ネットワーク内に存在するリンクの数",
             "turn": u"実時間通信要求の入力順",
             "cplx": u"ランダムネットワークの\n　　　複雑度",
+            # "cplx": u"ランダムネットワークの複雑度",
             "dep": u"ツリートポロジの深さ",
             "fan": u"ファンアウト",
             "time": u"平均処理時間 [s]",
@@ -336,15 +349,20 @@ if __name__ == '__main__':
     topo = jh.get_topotype()
     # topo = "else"
     if topo == "BA":
+        jh.dotplot()
         # jh.sort_by("time", "snum", "turn")  # ba fit
         # jh.sort_by("time", "lnum", "turn")  # ba fit
         # jh.sort_by("time", "turn", cplx=2, snum=100)  # ba rnum20
         # jh.sort_by("cdi", "turn", cplx=2, snum=100)  # ba rnum20
         # jh.sort_by("hops", "snum", "turn")  # ba
+        # jh.sort_by("hop", "snum", "turn")  # ba
         # jh.sort_by("hops", "lnum", "turn")  # ba
+        # jh.sort_by("hops", "lnum", "turn", snum=100)  # ba
+        # jh.sort_by("hop", "lnum", "turn")  # ba
+        jh.sort_by("hops", "cplx", "turn")  # ba
 
-        jh.oresenplot()
         # jh.sort_by("tf", "snum", "turn")  # ba
+        jh.oresenplot()
         # jh.sort_by("tf", "snum", "cplx")  # ba
         # jh.sort_by("tf", "turn", "cplx", snum=100)  # ba rnum20
     elif topo == "tree":

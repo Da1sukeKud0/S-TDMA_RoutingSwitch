@@ -4,6 +4,7 @@ require "trema"
 require_relative "path_manager"
 require_relative "rtc"
 require_relative "cputs"
+require "json"
 
 ## RTCManager
 ## 実時間通信要求に対し経路スケジューリングおよび時刻スケジューリングを行う
@@ -85,6 +86,8 @@ class RTCManager # < Trema::Controller
     puts "初期位相 #{initial_phase} で経路探索を開始します"
     if @timeslot_table.all? { |_key, each| each.size == 0 } ##既存のrtcがない場合
       route = @path_manager.shortest_path?(rtc.source_mac, rtc.destination_mac)
+      # output_json(@path_manager.graph.graph)
+      # rputs "#{@path_manager.graph.graph}"
       @cdi += 1.0 ## for test
       if route
         ## for hop_diff
@@ -304,4 +307,11 @@ def sort_h(hash)
     hash[a[0]] = a[1]
   end
   return hash
+end
+
+## 取得したデータをjson形式で出力
+def output_json(obj)
+  File.open(".links", "w") do |file|
+    JSON.dump(obj, file)
+  end
 end

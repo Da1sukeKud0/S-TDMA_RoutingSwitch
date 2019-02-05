@@ -54,8 +54,6 @@ BAモデルのトポロジ(スイッチ数100,複雑度2)に対し5回の実時�
 + lineprof  
 bamaxと同様のテストを実行しスクリプトの実行時間を行単位で計測
 
-![scheduling_flowchart.pdf](https://github.com/Da1sukeKud0/S-TDMA_RoutingSwitch/files/2693808/scheduling_flowchart.pdf)
-
 サポートスクリプトについて
 ----
 BAモデルに基づくランダムトポロジの生成(標準入力よりスイッチ数と複雑さを指定)
